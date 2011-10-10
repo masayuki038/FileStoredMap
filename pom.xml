@@ -1,0 +1,27 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>net.wrap_trap.utils</groupId>
+  <artifactId>FileStoredHashMap</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>FileStoredHashMap</name>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.msgpack</groupId>
+  		<artifactId>msgpack</artifactId>
+  		<version>0.5.2-devel</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>de.undercouch</groupId>
+  		<artifactId>bson4jackson</artifactId>
+  		<version>1.1.2</version>
+  	</dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>msgpack.org</id>
+      <name>msgpack</name>
+      <url>http://msgpack.org/maven2</url>
+    </repository>
+  </repositories>
+</project>
