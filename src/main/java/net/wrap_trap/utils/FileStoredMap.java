@@ -84,6 +84,7 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 		return null;
 	}
 	public V put(K key, V value) {
+		this.valueClazz = value.getClass();
 		int hashCode = key.hashCode();
 		int idx = hashCode / INDEX_SIZE_PER_FILE + 1;
 		int pos = hashCode % INDEX_SIZE_PER_FILE;
@@ -122,18 +123,18 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 	}
 	
 	protected byte[] serializeValue(V v) throws JsonGenerationException, JsonMappingException, IOException{
-		Element<V> e = new Element<V>(v);
+		//Element<V> e = new Element<V>(v);
 	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
 	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
-	    mapper.writeValue(baos, e);
+	    mapper.writeValue(baos, v);
 	    return baos.toByteArray();
 	}
 	
 	protected V deserializeValue(byte[] buf) throws JsonGenerationException, JsonMappingException, IOException{
 	    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
 	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
-	    Element<V> e = (Element<V>)mapper.readValue(bais, Element.class);
-	    return e.getValue();
+	    V ret = (V)mapper.readValue(bais, this.valueClazz);
+	    return ret;
 	}
 
 	protected byte getLastDataFileNumber(){

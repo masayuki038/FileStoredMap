@@ -28,16 +28,24 @@ public class BsonTest {
 	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
 	    mapper.writeValue(baos, emp);
 	    byte[] buffer = baos.toByteArray();
-	    
-	    for (byte b : buffer) {
-	    	System.out.print(Integer.toHexString(b & 0xFF) + " ");
-		}
-		System.out.println();
 		
 		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
 		Employee dst = mapper.readValue(bais, Employee.class);
 		assertThat(dst.getA(), is(76));
 		assertThat(dst.getName(), is("babb"));
 		assertThat(dst.getSal(), is(Integer.MAX_VALUE-2));
+	}
+	
+	@Test
+	public void testSerializeString() throws JsonGenerationException, JsonMappingException, IOException{
+	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
+	    mapper.writeValue(baos, "bar");
+	    byte[] buffer = baos.toByteArray();
+		
+		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+		Object obj = mapper.readValue(bais, String.class);
+		assertThat((obj instanceof String), is(true));
+		assertThat((String)obj, is("bar"));
 	}
 }
