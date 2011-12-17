@@ -5,8 +5,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.Test;
 
 import static org.junit.Assert.assertThat;
@@ -37,15 +41,54 @@ public class BsonTest {
 	}
 	
 	@Test
-	public void testSerializeString() throws JsonGenerationException, JsonMappingException, IOException{
-	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
-	    mapper.writeValue(baos, "bar");
-	    byte[] buffer = baos.toByteArray();
-		
-		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
-		Object obj = mapper.readValue(bais, String.class);
-		assertThat((obj instanceof String), is(true));
-		assertThat((String)obj, is("bar"));
+	public void testSerializeStringWithStreamAPI() throws JsonGenerationException, JsonMappingException, IOException{
+		BsonFactory f = new BsonFactory();
+	    ByteArrayOutputStream baos = null;
+	    ByteArrayInputStream bais = null;
+	    try{
+	    	baos = new ByteArrayOutputStream();
+			JsonGenerator g = f.createJsonGenerator(baos);
+			g.writeStartObject();
+			g.writeObjectField("foo", "bar");
+			g.writeEndObject();
+			g.close();
+
+			byte[] buffer = baos.toByteArray();
+		    for (byte b : buffer) {
+			      System.out.print(Integer.toHexString(b & 0xFF) + " ");
+			}
+		    System.out.println();
+
+	    	String key = null;
+	    	String value = null;
+
+	    	bais = new ByteArrayInputStream(buffer);
+		    JsonParser p = f.createJsonParser(bais);
+		    p.nextToken();
+		    while (p.nextToken() != JsonToken.END_OBJECT) {
+		    	key = p.getCurrentName();
+		    	p.nextToken();
+		    	//value = p.readValueAs(new TypeReference<String>(){});
+		    	value = (String)p.getEmbeddedObject();
+		    }
+		    p.close();
+		    
+		    assertThat(key, is("foo"));
+		    assertThat(value, is("bar"));
+	    }catch(Exception ex){
+	    	throw new RuntimeException(ex);
+	    }finally{
+	    	if(baos != null){
+	    		try{
+	    			baos.close();
+	    		}catch(IOException ignore){}
+	    	}
+	    	if(bais != null){
+	    		try{
+	    			bais.close();
+	    		}catch(IOException ignore){}
+	    	}
+	    }
+	
 	}
 }
