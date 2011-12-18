@@ -10,12 +10,17 @@ import java.util.Map;
 import java.util.Set;
 
 import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.JsonToken;
+import org.codehaus.jackson.ObjectCodec;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 
 import de.undercouch.bson4jackson.BsonFactory;
 
-public class FileStoredMap<K, V> implements Map<K, V> {
+public class FileStoredMap<V> implements Map<String, V> {
 
 	private static final String INDEX_FILE_SUFFIX = ".idx";
 	private static final String DATA_FILE_SUFFIX = ".dat";
@@ -28,6 +33,10 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 	private String dirPath;
 	
 	private Class<?> valueClazz;
+	
+	private BsonFactory f = new BsonFactory();
+	private ObjectMapper objectMapper = new ObjectMapper(f);
+	
 	
 	public FileStoredMap(String dirPath){
 		this.dirPath = dirPath;
@@ -47,7 +56,7 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 		throw new NotImplementedException();
 	}
 	
-	public Set<java.util.Map.Entry<K, V>> entrySet() {
+	public Set<java.util.Map.Entry<String, V>> entrySet() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -69,7 +78,7 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 			if(dataFile.read(buf) < dataLength){
 				throw new RuntimeException("error");
 			}
-			return deserializeValue(buf);
+			return deserializeValue(buf).getValue();
 		}catch(IOException ex){
 			throw new RuntimeException(ex);
 		}
@@ -79,11 +88,11 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	public Set<K> keySet() {
+	public Set<String> keySet() {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	public V put(K key, V value) {
+	public V put(String key, V value) {
 		this.valueClazz = value.getClass();
 		int hashCode = key.hashCode();
 		int idx = hashCode / INDEX_SIZE_PER_FILE + 1;
@@ -100,7 +109,7 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 				
 			}else if(read < INDEX_SIZE_PER_RECORD){
 				// no exists.
-				byte[] bytes = serializeValue(value);
+				byte[] bytes = serializeValue(key, value);
 				byte lastDataFileNumber = getLastDataFileNumber();
 				String dataFilePath = getDataFilePath(lastDataFileNumber);
 				RandomAccessFile dataFile = new RandomAccessFile(dataFilePath, "rw");
@@ -122,19 +131,64 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 		return null;
 	}
 	
-	protected byte[] serializeValue(V v) throws JsonGenerationException, JsonMappingException, IOException{
-		//Element<V> e = new Element<V>(v);
-	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
-	    mapper.writeValue(baos, v);
-	    return baos.toByteArray();
+	protected byte[] serializeValue(String key, V v) throws JsonGenerationException, JsonMappingException, IOException{
+		Element<V> e = new Element<V>(key, v);
+		return serializeValue(e);
 	}
 	
-	protected V deserializeValue(byte[] buf) throws JsonGenerationException, JsonMappingException, IOException{
-	    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
-	    ObjectMapper mapper = new ObjectMapper(new BsonFactory());
-	    V ret = (V)mapper.readValue(bais, this.valueClazz);
-	    return ret;
+	protected byte[] serializeValue(Element<V> e) throws JsonGenerationException, JsonMappingException, IOException{
+		ByteArrayOutputStream baos = null;
+	    try{
+		    baos = new ByteArrayOutputStream();
+			JsonGenerator g = f.createJsonGenerator(baos);
+			g.setCodec(objectMapper);
+			g.writeStartObject();
+			g.writeObjectFieldStart(e.getKey());
+			g.writeObjectField(Element.VALUE, e.getValue());
+			g.writeObjectField(Element.TYPE, e.getType());
+			g.writeEndObject();
+			g.writeEndObject();
+			g.close();
+		    return baos.toByteArray();
+	    }finally{
+	    	if(baos != null){
+	    		try{
+	    			baos.close();
+	    		}catch(IOException ignore){}
+	    	}
+	    }
+	}
+	
+	protected Element<V> deserializeValue(byte[] buf) throws JsonGenerationException, JsonMappingException, IOException{
+	    ByteArrayInputStream bais = null;
+    	String key = null;
+    	V value = null;
+	    try{
+	    	dump(buf);
+	    	bais = new ByteArrayInputStream(buf);
+	    	JsonParser p = f.createJsonParser(bais);
+	    	p.setCodec(objectMapper);
+		    System.out.println(p.nextToken()); // startObject
+		    System.out.println(p.nextToken()); // key
+	    	key = p.getCurrentName();
+	    	System.out.println("getCurrentName(): " + key);
+	    	System.out.println(p.nextToken());
+	    	System.out.println(p.nextToken()); // "value"
+	    	System.out.println("token name: " + p.getCurrentName());
+	    	System.out.println(p.nextToken());
+	    	//System.out.println(p.nextToken());
+	    	//dump(p.getBinaryValue());
+	    	value = (V)p.getEmbeddedObject();
+		    //value = p.readValueAs(new TypeReference<V>(){});
+	    	p.close();
+		    return new Element<V>(key, value);
+	    }finally{
+	    	if(bais != null){
+	    		try{
+	    			bais.close();
+	    		}catch(IOException ignore){}
+	    	}
+	    }
 	}
 
 	protected byte getLastDataFileNumber(){
@@ -151,7 +205,7 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 		return dirPath + File.separator + Integer.toString(fileNumber) + DATA_FILE_SUFFIX;
 	}
 
-	public void putAll(Map<? extends K, ? extends V> map) {
+	public void putAll(Map<? extends String, ? extends V> map) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -166,5 +220,12 @@ public class FileStoredMap<K, V> implements Map<K, V> {
 	public Collection<V> values() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	protected void dump(byte[] bin){
+	    for (byte b : bin) {
+		      System.out.print(Integer.toHexString(b & 0xFF) + " ");
+		}
+	    System.out.println();
 	}
 }

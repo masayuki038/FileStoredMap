@@ -8,7 +8,7 @@ import static org.hamcrest.CoreMatchers.*;
 public class FileStoredMapTest {	
 	@Test
 	public void testPutPojo(){
-		FileStoredMap<String, Employee> map = new FileStoredMap<String, Employee>("tmp/empdir");
+		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/empdir");
 		Employee emp = createSampleEmp1();
 		map.put("emp", emp);
 		Employee emp2 = map.get("emp");
