@@ -1,31 +1,30 @@
 package net.wrap_trap.utils;
 
 public class Element<V> {
-	private String className;
+	
+	public static final String VALUE = "value";
+	public static final String TYPE = "type";
+	
+	private String type;
+	private String key;
 	private V value;
 	
-	public Element(){
-	}
-	
-	public Element(V v) {
+	public Element(String key, V v) {
 		super();
-		this.className = v.getClass().getName();
+		this.key = key;
 		this.value = v;
+		this.type = v.getClass().getName();
 	}
 	
 	public V getValue() {
 		return value;
 	}
 	
-	public void setValue(V v){
-		this.value = v;
+	public String getKey(){
+		return key;
 	}
 	
-	public String getClassName() {
-		return className;
+	public String getType() {
+		return type;
 	}
-
-	public void setClassName(String className) {
-		this.className = className;
-	}	
 }
