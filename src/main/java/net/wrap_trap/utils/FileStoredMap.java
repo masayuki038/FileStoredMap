@@ -16,15 +16,9 @@ import java.util.Set;
 
 import org.apache.commons.beanutils.PropertyUtils;
 import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.ObjectCodec;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.TreeMapper;
-import org.codehaus.jackson.map.type.SimpleType;
 import org.codehaus.jackson.map.type.TypeFactory;
 import org.codehaus.jackson.node.BinaryNode;
 import org.codehaus.jackson.node.BooleanNode;
@@ -32,12 +26,10 @@ import org.codehaus.jackson.node.DecimalNode;
 import org.codehaus.jackson.node.DoubleNode;
 import org.codehaus.jackson.node.IntNode;
 import org.codehaus.jackson.node.LongNode;
-import org.codehaus.jackson.node.NumericNode;
 import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.node.TextNode;
 import org.codehaus.jackson.node.ValueNode;
 import org.codehaus.jackson.type.JavaType;
-import org.codehaus.jackson.type.TypeReference;
 
 import de.undercouch.bson4jackson.BsonFactory;
 
@@ -198,7 +190,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 	    	}
 	    }
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	protected ObjectNode encodeObjectNode(Object value) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
 		ObjectNode node = objectMapper.createObjectNode();
