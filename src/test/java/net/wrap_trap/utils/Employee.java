@@ -1,18 +1,24 @@
 package net.wrap_trap.utils;
 
-import java.util.Date;
+import java.io.Serializable;
 
-import org.msgpack.annotation.MessagePackBeans;
-import org.msgpack.annotation.MessagePackMessage;
-
-@MessagePackBeans
-public class Employee {
+public class Employee implements Serializable{
+	
+	/**
+	 * serialVersionUID
+	 */
+	private static final long serialVersionUID = -4376357314587798576L;
 
 	private int a;
 	private String name;
 	private int sal;
-	//private Date date;
-
+	
+	public int getA() {
+		return a;
+	}
+	public void setA(int a) {
+		this.a = a;
+	}
 	public String getName() {
 		return name;
 	}
@@ -24,17 +30,5 @@ public class Employee {
 	}
 	public void setSal(int sal) {
 		this.sal = sal;
-	}
-//	public Date getDate() {
-//		return date;
-//	}
-//	public void setDate(Date date) {
-//		this.date = date;
-//	}
-	public int getA() {
-		return a;
-	}
-	public void setA(int a) {
-		this.a = a;
 	}
 }
