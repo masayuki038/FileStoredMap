@@ -29,15 +29,24 @@ public class FileStoredMapTest {
 	
 	@Test
 	public void testPutNestedPojo(){
+		long start = System.currentTimeMillis();
 		FileStoredMap<Employer> map = new FileStoredMap<Employer>("tmp/empdir2");
 		Employee emp1 = createEmployee(1, "foo", 256);
 		Employee emp2 = createEmployee(2, "bar", 65536);
 		Employer employer = createEmployer("boss");
 		employer.addEmployee(emp1);
 		employer.addEmployee(emp2);
+		long c1 = System.currentTimeMillis();
+		System.out.println(String.format("c1 - start: %d", c1 - start));
 		
 		map.put("employer", employer);
+		long c2 = System.currentTimeMillis();
+		System.out.println(String.format("c2 - c1: %d", c2 - c1));
+
 		Employer rEmployer = map.get("employer");
+		long c3 = System.currentTimeMillis();
+		System.out.println(String.format("c3 - c2: %d", c3 - c2));
+
 		assertThat(rEmployer.getName(), is(employer.getName()));
 		assertThat(rEmployer.getEmpList().size(), is(2));
 		
