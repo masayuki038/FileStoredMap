@@ -89,11 +89,11 @@ public class FileStoredMap<V> implements Map<String, V> {
 				return null;
 			}
 			// TODO Need to specify the key to check the equivalent of the key for hash code collision.
-			byte[] buf = readFrom(indexFile, pos);
-			if(buf == null || buf.length == 0){
+			BSONObject bsonObject = readFrom(key.toString(), indexFile, pos);
+			if(bsonObject == null){
 				return null;
 			}
-			return rebuildValue(buf);
+			return rebuildValue(bsonObject);
 		} catch (FileNotFoundException ex) {
 			return null;
 		} catch (IOException ex) {
@@ -103,7 +103,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 		}
 	}
 
-	protected byte[] readFrom(RandomAccessFile indexFile, int pos) throws IOException, FileNotFoundException{
+	protected BSONObject readFrom(String key, RandomAccessFile indexFile, int pos) throws IOException, FileNotFoundException{
 		if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD){
 			return null;
 		}
@@ -114,21 +114,21 @@ public class FileStoredMap<V> implements Map<String, V> {
 			// index record is empty.(this record area has cleaned up.)
 			return null;
 		}
-		return readFrom(dataPos, fileNumber);
+		return readFrom(key, dataPos, fileNumber);
 	}
 
-	protected byte[] readFrom(int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
+	protected BSONObject readFrom(String key, int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
 		RandomAccessFile dataFile = null;
 		try {
 			String dataFilePath = getDataFilePath(fileNumber);
 			dataFile = new RandomAccessFile(dataFilePath, "r");
-			return readDataFile(dataFile, dataPos);
+			return readDataFile(key, dataFile, dataPos);
 		} finally {
 			Closeables.closeQuietly(dataFile);
 		}
 	}
 
-	protected byte[] readDataFile(RandomAccessFile dataFile, int dataPos)
+	protected BSONObject readDataFile(String key, RandomAccessFile dataFile, int dataPos)
 			throws IOException {
 		dataFile.seek(dataPos);
 		int dataLength = dataFile.readInt();
@@ -137,7 +137,19 @@ public class FileStoredMap<V> implements Map<String, V> {
 		if(dataFile.read(buf) < bodySize){
 			throw new RuntimeException("error");
 		}
-		return buf;
+		BSONObject bsonObject = decoder.readObject(buf);
+		Set<String> bsonKeys = (Set<String>)bsonObject.keySet();
+		Preconditions.checkArgument(bsonKeys.size() == 1);
+		for(String bsonKey : bsonKeys){
+			if(key.equals(bsonKey)){
+				return bsonObject;
+			}
+		}
+		int nextDataPos = dataFile.readInt();
+		int nextFileNumber = dataFile.readByte();
+		
+		// TODO if nextFileNumber is different from current, open the another data file.
+		return readDataFile(key, dataFile, nextDataPos);
 	}
 	public boolean isEmpty() {
 		throw new NotImplementedException();
@@ -171,8 +183,8 @@ public class FileStoredMap<V> implements Map<String, V> {
 			}else{
 				updateIndex(indexFile, pos, nextDataPos, dataFile.readByte());
 			}
-			byte[] body = readDataFile(dataFile, dataPos);
-			return rebuildValue(body);
+			BSONObject bsonObject = readDataFile(key.toString(), dataFile, dataPos);
+			return rebuildValue(bsonObject);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}finally{
@@ -276,9 +288,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected V rebuildValue(byte[] buf) {
-		BSONObject object = decoder.readObject(buf);
-
+	protected V rebuildValue(BSONObject object) {
 		try{
 			Set<String> keySet = object.keySet();
 			Preconditions.checkArgument(keySet.size() == 1);
