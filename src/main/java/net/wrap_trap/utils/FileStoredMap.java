@@ -203,6 +203,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 			if(containsKey(indexFile, pos)){
 				throw new NotImplementedException("already exists.");
 			} else {
+				indexFile.seek(pos);
 				writeTo(indexFile, key, value);
 			}
 		} catch (IOException ex) {
@@ -226,11 +227,12 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	protected boolean containsKey(RandomAccessFile indexFile, int pos) throws IOException{
-		indexFile.seek(pos);
-		byte[] buf = new byte[INDEX_SIZE_PER_RECORD];
-		int read = indexFile.read(buf, 0, INDEX_SIZE_PER_RECORD);
-		// TODO re-think to check the way that the specified key is registered in index file.
-		return !(read < INDEX_SIZE_PER_RECORD);
+		if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
+			return false;
+		}
+		indexFile.seek(pos + 4/* size of dataPos */);
+		int fileNumber = indexFile.readByte();
+		return (fileNumber > 0);		
 	}
 	
 	protected void writeTo(RandomAccessFile indexFile, String key, V value) {
