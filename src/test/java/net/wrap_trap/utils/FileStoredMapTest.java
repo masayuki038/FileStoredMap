@@ -14,21 +14,17 @@ public class FileStoredMapTest {
 	
 	@Before
 	public void setUp() throws IOException{
-		try{
-			FileUtils.deleteDirectory(new File("tmp/empdir"));
-		}catch(IOException ignore){}
+	}
 
+	private void deleteFiles(String path) {
 		try{
-			FileUtils.deleteDirectory(new File("tmp/empdir2"));
-		}catch(IOException ignore){}
-		
-		try{
-			FileUtils.deleteDirectory(new File("tmp/pridir"));
+			FileUtils.deleteDirectory(new File(path));
 		}catch(IOException ignore){}
 	}
 	
 	@Test
 	public void testPutNestedPojo(){
+		deleteFiles("tmp/empdir2");
 		long start = System.currentTimeMillis();
 		FileStoredMap<Employer> map = new FileStoredMap<Employer>("tmp/empdir2");
 		Employee emp1 = createEmployee(1, "foo", 256);
@@ -63,6 +59,7 @@ public class FileStoredMapTest {
 	
 	@Test
 	public void testPutPojo(){
+		deleteFiles("tmp/empdir");
 		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/empdir");
 		Employee emp = createEmployee(1, "hoge", 256);
 		map.put("emp", emp);
@@ -74,6 +71,7 @@ public class FileStoredMapTest {
 
 	@Test
 	public void testPutString(){
+		deleteFiles("tmp/pridir");
 		FileStoredMap<String> map = new FileStoredMap<String>("tmp/pridir");
 		map.put("foo", "bar");
 		String ret = map.get("foo");
@@ -82,10 +80,49 @@ public class FileStoredMapTest {
 	
 	@Test
 	public void testPutInt(){
+		deleteFiles("tmp/pridir");
 		FileStoredMap<Integer> map = new FileStoredMap<Integer>("tmp/pridir");
 		map.put("foo", 1);
 		int ret = map.get("foo");
 		assertThat(ret, is(1));
+	}
+	
+	@Test
+	public void testGetNull(){
+		deleteFiles("tmp/remove1");
+		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/remove1");
+		Employee emp = createEmployee(1, "hoge", 256);
+		map.put("emp", emp);
+		assertThat(map.get("emp2"), nullValue());
+	}
+
+	@Test
+	public void testRemoveNoIndexFile(){
+		deleteFiles("tmp/remove2");
+		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/remove2");
+		assertThat(map.get("emp2"), nullValue());
+	}
+
+	@Test
+	public void testRemoveNull(){
+		deleteFiles("tmp/remove3");
+		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/remove3");
+		Employee emp = createEmployee(1, "hoge", 256);
+		map.put("emp", emp);
+		assertThat(map.remove("emp2"), nullValue());
+	}
+
+	@Test
+	public void testRemove(){
+		deleteFiles("tmp/remove4");
+		FileStoredMap<Employee> map = new FileStoredMap<Employee>("tmp/remove4");
+		Employee emp = createEmployee(1, "hoge", 256);
+		map.put("emp", emp);
+		Employee emp2 = map.remove("emp");
+		assertThat(emp.getA(), is(emp2.getA()));
+		assertThat(emp.getName(), is(emp2.getName()));
+		assertThat(emp.getSal(), is(emp2.getSal()));
+		assertThat(map.get("emp"), nullValue());
 	}
 
 	protected Employee createEmployee(int a, String name, int sal) {
