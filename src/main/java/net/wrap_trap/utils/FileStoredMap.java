@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import org.bson.BasicBSONDecoder;
 import org.bson.BasicBSONEncoder;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 
 import net.wrap_trap.monganez.BSONObjectMapper;
@@ -44,17 +46,22 @@ public class FileStoredMap<V> implements Map<String, V> {
 	 */
 	private static final String DATA_FILE_SUFFIX = ".dat";
 	
-	private static final int INDEX_SIZE_PER_FILE = 429496729; // Integer.MAX_VALUE((2^31-1)/5) 4byte:index file position, 1byte: file index.
+	private static final int INDEX_SIZE_PER_FILE = 429496729; // Integer.MAX_VALUE(2^31-1)/5 4byte:index file position, 1byte: file index.
 	private static final int INDEX_SIZE_PER_RECORD = 5;
 	
 	private static final int NEXT_DATA_POINTER_SIZE = 5;
+	
+	private static final int MAX_NUMBER_OF_DATA_FILES = 2;
+	private static final int MAX_NUMBER_OF_INDEX_FILES = 10; // Integer.MAX_VALUE(2^31)/INDEX_SIZE_PER_FILE*2(negative/positive areas of integer)
 	
 	private String dirPath;
 	
 	private BasicBSONEncoder encoder = new BasicBSONEncoder();
 	private BasicBSONDecoder decoder = new BasicBSONDecoder();
 	private BSONObjectMapper objectMapper = new BSONObjectMapper();
-
+	
+	private RandomAccessFile[] dataFiles = new RandomAccessFile[MAX_NUMBER_OF_DATA_FILES];
+	private RandomAccessFile[] indexFiles = new RandomAccessFile[MAX_NUMBER_OF_INDEX_FILES];
 	
 	public FileStoredMap(String dirPath){
 		this.dirPath = dirPath;
@@ -78,13 +85,13 @@ public class FileStoredMap<V> implements Map<String, V> {
 		throw new NotImplementedException();
 	}
 	public V get(Object key) {
-		int hashCode = key.hashCode();
-		int idx = hashCode / INDEX_SIZE_PER_FILE + 1;
-		int pos = hashCode % INDEX_SIZE_PER_FILE;
+		long hashCode = toUnsignedInt(key.hashCode());
+		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
+		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
 		
 		RandomAccessFile indexFile = null;
 		try{
-			indexFile = openIndexFile(idx, "r");
+			indexFile = getIndexFile(idx);
 			if(indexFile == null){
 				return null;
 			}
@@ -98,8 +105,6 @@ public class FileStoredMap<V> implements Map<String, V> {
 			return null;
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
-		} finally {
-			Closeables.closeQuietly(indexFile);
 		}
 	}
 
@@ -118,14 +123,8 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 
 	protected BSONObject readFrom(String key, int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
-		RandomAccessFile dataFile = null;
-		try {
-			String dataFilePath = getDataFilePath(fileNumber);
-			dataFile = new RandomAccessFile(dataFilePath, "r");
-			return readDataFile(key, dataFile, dataPos);
-		} finally {
-			Closeables.closeQuietly(dataFile);
-		}
+		RandomAccessFile dataFile = getDataFile(fileNumber);
+		return readDataFile(key, dataFile, dataPos);
 	}
 
 	protected BSONObject readDataFile(String key, RandomAccessFile dataFile, int dataPos)
@@ -146,10 +145,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 			}
 		}
 		int nextDataPos = dataFile.readInt();
-		int nextFileNumber = dataFile.readByte();
+		byte nextFileNumber = dataFile.readByte();
 		
-		// TODO if nextFileNumber is different from current, open the another data file.
-		return readDataFile(key, dataFile, nextDataPos);
+		return readFrom(key, nextDataPos, nextFileNumber);
 	}
 	public boolean isEmpty() {
 		throw new NotImplementedException();
@@ -159,14 +157,14 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	public V remove(Object key) {
-		int hashCode = key.hashCode();
-		int idx = hashCode / INDEX_SIZE_PER_FILE + 1;
-		int pos = hashCode % INDEX_SIZE_PER_FILE;
+		long hashCode = toUnsignedInt(key.hashCode());
+		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
+		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
 		
 		RandomAccessFile indexFile = null;
 		RandomAccessFile dataFile = null;
 		try{
-			indexFile = openIndexFile(idx, "rw");
+			indexFile = getIndexFile(idx);
 			if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD){
 				return null;
 			}
@@ -187,9 +185,6 @@ public class FileStoredMap<V> implements Map<String, V> {
 			return rebuildValue(bsonObject);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
-		}finally{
-			Closeables.closeQuietly(dataFile);
-			Closeables.closeQuietly(indexFile);
 		}
 	}
 	
@@ -205,13 +200,13 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	public V put(String key, V value) {
-		int hashCode = key.hashCode();
-		int idx = hashCode / INDEX_SIZE_PER_FILE + 1;
-		int pos = hashCode % INDEX_SIZE_PER_FILE;
+		long hashCode = toUnsignedInt(key.hashCode());
+		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
+		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
 		
 		RandomAccessFile indexFile = null;
 		try {
-			indexFile = openIndexFile(idx, "rw");
+			indexFile = getIndexFile(idx);
 			if(containsKey(indexFile, pos)){
 				throw new NotImplementedException("already exists.");
 			} else {
@@ -220,24 +215,10 @@ public class FileStoredMap<V> implements Map<String, V> {
 			}
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
-		}finally{
-			Closeables.closeQuietly(indexFile);
 		}
 		return null;
 	}
 
-	private RandomAccessFile openIndexFile(int idx, String flag)
-			throws FileNotFoundException {
-		String indexFilePath = dirPath + File.separator + Integer.toString(idx) + INDEX_FILE_SUFFIX;
-		if("r".equals(flag)){
-			File file = new File(indexFilePath);
-			if(!file.exists()){
-				return null;
-			}
-		}
-		return new RandomAccessFile(indexFilePath, flag);
-	}
-	
 	protected boolean containsKey(RandomAccessFile indexFile, int pos) throws IOException{
 		if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
 			return false;
@@ -264,8 +245,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 		RandomAccessFile dataFile = null;
 		try{
 			byte lastDataFileNumber = getLastDataFileNumber();
-			String dataFilePath = getDataFilePath(lastDataFileNumber);
-			dataFile = new RandomAccessFile(dataFilePath, "rw");
+			dataFile = getDataFile(lastDataFileNumber);
 
 			long dataPos = dataFile.length();
 			dataFile.seek(dataPos);
@@ -277,8 +257,6 @@ public class FileStoredMap<V> implements Map<String, V> {
 			indexFile.writeByte(lastDataFileNumber);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
-		}finally{
-			Closeables.closeQuietly(dataFile);
 		}
 	}
 	
@@ -318,7 +296,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 
 	protected byte getLastDataFileNumber(){
-		byte i = 2;
+		byte i = MAX_NUMBER_OF_DATA_FILES;
 		while(true){
 			String dataFilePath = dirPath + File.separator + Integer.toString(i) + DATA_FILE_SUFFIX;
 			if(!new File(dataFilePath).exists()){
@@ -341,6 +319,45 @@ public class FileStoredMap<V> implements Map<String, V> {
 		throw new NotImplementedException();
 	}
 	
+	public void close(){
+		close(dataFiles);
+		close(indexFiles);
+	}
+	
+	protected void close(RandomAccessFile[] files){
+		for(RandomAccessFile file: files){
+			Closeables.closeQuietly(file);
+		}
+	}
+	
+	protected RandomAccessFile getDataFile(byte dataFileNumber) throws FileNotFoundException{
+		Preconditions.checkArgument(dataFileNumber <= MAX_NUMBER_OF_DATA_FILES);
+		int idx = dataFileNumber - 1;
+		if(dataFiles[idx] != null){
+			return dataFiles[idx];
+		}
+		String dataFilePath = getDataFilePath(dataFileNumber);
+		RandomAccessFile dataFile = new RandomAccessFile(dataFilePath, "rw");
+		dataFiles[idx] = dataFile;
+		return dataFile;
+	}
+	
+	protected RandomAccessFile getIndexFile(int indexFileNumber) throws FileNotFoundException {
+		Preconditions.checkArgument(indexFileNumber <= MAX_NUMBER_OF_INDEX_FILES);
+		int idx = indexFileNumber - 1;
+		if(indexFiles[idx] != null){
+			return indexFiles[idx];
+		}
+		String indexFilePath = dirPath + File.separator + Integer.toString(idx) + INDEX_FILE_SUFFIX;
+		RandomAccessFile indexFile = new RandomAccessFile(indexFilePath, "rw");
+		indexFiles[idx] = indexFile;
+		return indexFile;
+	}
+	
+	protected long toUnsignedInt(int i){
+		return i & 0xffffffffL;
+	}
+
 	protected void dump(byte[] bin){
 	    for (byte b : bin) {
 		      System.out.print(Integer.toHexString(b & 0xFF) + " ");
