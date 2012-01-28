@@ -2,10 +2,14 @@ package net.wrap_trap.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.legacy.PowerMockRunner;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
@@ -29,8 +33,8 @@ public class FileStoredMapTest {
 		FileStoredMap<Employer> map = null;
 		try{
 			map = new FileStoredMap<Employer>("tmp/empdir2");
-			Employee emp1 = createEmployee(1, "foo", 256);
-			Employee emp2 = createEmployee(2, "bar", 65536);
+			Employee emp1 = createEmployee("foo", 256, new Date());
+			Employee emp2 = createEmployee("bar", 65536, new Date());
 			Employer employer = createEmployer("boss");
 			employer.addEmployee(emp1);
 			employer.addEmployee(emp2);
@@ -49,12 +53,12 @@ public class FileStoredMapTest {
 			assertThat(rEmployer.getEmpList().size(), is(2));
 			
 			Employee rEmp1 = rEmployer.getEmpList().get(0);
-			assertThat(rEmp1.getA(), is(emp1.getA()));
 			assertThat(rEmp1.getName(), is(emp1.getName()));
 			assertThat(rEmp1.getSal(), is(emp1.getSal()));		
+			assertThat(rEmp1.getCreatedAt(), is(emp1.getCreatedAt()));
 
 			Employee rEmp2 = rEmployer.getEmpList().get(1);
-			assertThat(rEmp2.getA(), is(emp2.getA()));
+			assertThat(rEmp2.getCreatedAt(), is(emp2.getCreatedAt()));
 			assertThat(rEmp2.getName(), is(emp2.getName()));
 			assertThat(rEmp2.getSal(), is(emp2.getSal()));		
 		}finally{
@@ -70,10 +74,11 @@ public class FileStoredMapTest {
 		FileStoredMap<Employee> map = null;
 		try{
 			map = new FileStoredMap<Employee>("tmp/empdir");
-			Employee emp = createEmployee(1, "hoge", 256);
+			Date createdAt = new Date();
+			Employee emp = createEmployee("hoge", 256, createdAt);
 			map.put("emp", emp);
 			Employee emp2 = map.get("emp");
-			assertThat(emp.getA(), is(emp2.getA()));
+			assertThat(emp.getCreatedAt(), is(emp2.getCreatedAt()));
 			assertThat(emp.getName(), is(emp2.getName()));
 			assertThat(emp.getSal(), is(emp2.getSal()));		
 		}finally{
@@ -123,7 +128,7 @@ public class FileStoredMapTest {
 			map = new FileStoredMap<Employee>("tmp/remove1");
 		}finally{
 			if(map != null){
-				Employee emp = createEmployee(1, "hoge", 256);
+				Employee emp = createEmployee("hoge", 1, new Date());
 				map.put("emp", emp);
 				assertThat(map.get("emp2"), nullValue());
 			}
@@ -150,7 +155,7 @@ public class FileStoredMapTest {
 		FileStoredMap<Employee> map = null;
 		try{
 			map = new FileStoredMap<Employee>("tmp/remove3");
-			Employee emp = createEmployee(1, "hoge", 256);
+			Employee emp = createEmployee("hoge", 256, new Date());
 			map.put("emp", emp);
 			assertThat(map.remove("emp2"), nullValue());
 		}finally{
@@ -166,10 +171,11 @@ public class FileStoredMapTest {
 		FileStoredMap<Employee> map = null;
 		try{
 			map = new FileStoredMap<Employee>("tmp/remove4");
-			Employee emp = createEmployee(1, "hoge", 256);
+			Date createdAt = new Date();
+			Employee emp = createEmployee("hoge", 256, createdAt);
 			map.put("emp", emp);
 			Employee emp2 = map.remove("emp");
-			assertThat(emp.getA(), is(emp2.getA()));
+			assertThat(emp.getCreatedAt(), is(emp2.getCreatedAt()));
 			assertThat(emp.getName(), is(emp2.getName()));
 			assertThat(emp.getSal(), is(emp2.getSal()));
 			assertThat(map.get("emp"), nullValue());
@@ -180,11 +186,11 @@ public class FileStoredMapTest {
 		}
 	}
 	
-	protected Employee createEmployee(int a, String name, int sal) {
+	protected Employee createEmployee(String name, int sal, Date created) {
 		Employee employee = new Employee();
-		employee.setA(a);
 		employee.setName(name);
 		employee.setSal(sal);
+		employee.setCreatedAt(created);
 		return employee;
 	}
 	

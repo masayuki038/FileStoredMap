@@ -95,7 +95,6 @@ public class FileStoredMap<V> implements Map<String, V> {
 			if(indexFile == null){
 				return null;
 			}
-			// TODO Need to specify the key to check the equivalent of the key for hash code collision.
 			BSONObject bsonObject = readFrom(key.toString(), indexFile, pos);
 			if(bsonObject == null){
 				return null;
@@ -200,6 +199,11 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	public V put(String key, V value) {
+		V pre = get(key);
+		if(pre != null){
+			remove(key);
+		}
+		
 		long hashCode = toUnsignedInt(key.hashCode());
 		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
 		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
@@ -216,7 +220,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}
-		return null;
+		return pre;
 	}
 
 	protected boolean containsKey(RandomAccessFile indexFile, int pos) throws IOException{
@@ -253,10 +257,56 @@ public class FileStoredMap<V> implements Map<String, V> {
 			dataFile.write(bytes);
 			dataFile.writeInt(0); // the file position of next data.
 			dataFile.writeByte(0); // the file position of next data.
-			indexFile.writeInt((int)dataPos);
-			indexFile.writeByte(lastDataFileNumber);
+			
+			updateIndex(indexFile, dataPos, lastDataFileNumber);	
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
+		}
+	}
+
+	protected void updateIndex(RandomAccessFile indexFile, long dataPos, byte lastDataFileNumber) throws IOException {
+		int dataRef = 0;
+		byte dataFileNumber = 0;
+		
+		boolean indexWritable = false;
+		long pos = indexFile.getFilePointer();
+		if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD){
+			indexWritable = true;
+		}else{
+			dataRef = indexFile.readInt();
+			dataFileNumber = indexFile.readByte();
+			if((dataRef == 0 )&& (dataFileNumber == 0)){
+				indexWritable = true;
+			}
+		}
+		if(indexWritable){
+			indexFile.writeInt((int)dataPos);
+			indexFile.writeByte(lastDataFileNumber);
+		}else{
+			updateNextRef((int)dataPos, lastDataFileNumber, dataRef, dataFileNumber);
+		}
+	}
+	
+	protected void updateNextRef(int orgDataPos, byte orgDataFileNumber, int pos, byte fileNumber) throws IOException {
+		int dataPos = pos;
+		byte dataFileNumber = fileNumber;
+		
+		while(true){
+			RandomAccessFile f = getDataFile(dataFileNumber);
+			f.seek(dataPos);
+			int dataSize = f.readInt();
+			f.seek(dataPos + dataSize - NEXT_DATA_POINTER_SIZE);
+			int nextDataPos = f.readInt();
+			byte nextFileNumber = f.readByte();
+			if(nextDataPos == 0 && nextFileNumber == 0){
+				f.seek(dataPos + dataSize - NEXT_DATA_POINTER_SIZE);
+				f.writeInt(orgDataPos);
+				f.writeByte(orgDataFileNumber);
+				return;
+			}else{
+				dataPos = nextDataPos;
+				dataFileNumber = nextFileNumber;
+			}
 		}
 	}
 	

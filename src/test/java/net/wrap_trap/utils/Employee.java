@@ -1,6 +1,7 @@
 package net.wrap_trap.utils;
 
 import java.io.Serializable;
+import java.util.Date;
 
 public class Employee implements Serializable{
 	
@@ -9,16 +10,10 @@ public class Employee implements Serializable{
 	 */
 	private static final long serialVersionUID = -4376357314587798576L;
 
-	private int a;
 	private String name;
 	private int sal;
+	private Date createdAt;
 	
-	public int getA() {
-		return a;
-	}
-	public void setA(int a) {
-		this.a = a;
-	}
 	public String getName() {
 		return name;
 	}
@@ -30,5 +25,11 @@ public class Employee implements Serializable{
 	}
 	public void setSal(int sal) {
 		this.sal = sal;
+	}
+	public Date getCreatedAt() {
+		return createdAt;
+	}
+	public void setCreatedAt(Date createdAt) {
+		this.createdAt = createdAt;
 	}
 }

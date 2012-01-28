@@ -45,5 +45,16 @@
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
+  	<dependency>
+  		<groupId>org.mockito</groupId>
+  		<artifactId>mockito-core</artifactId>
+  		<version>1.9.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.powermock</groupId>
+  		<artifactId>powermock-mockito-release-full</artifactId>
+  		<version>1.4.11</version>
+  		<type>pom</type>
+  	</dependency>
   </dependencies>
 </project>
