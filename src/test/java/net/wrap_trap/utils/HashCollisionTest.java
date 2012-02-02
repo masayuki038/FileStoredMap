@@ -2,7 +2,10 @@ package net.wrap_trap.utils;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+
 import static org.junit.Assert.assertThat;
+
+import java.util.Date;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,7 +15,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import static org.powermock.api.mockito.PowerMockito.*; 
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(String.class)
+@PrepareForTest(SomethingCallee.class)
 public class HashCollisionTest {
 
 	@Test
@@ -27,5 +30,15 @@ public class HashCollisionTest {
 		
 		assertThat(bar, is("bar"));
 		assertThat(foo.hashCode(), is(bar.hashCode()));
+		SomethingCallee.checkHashcodeEquivalent(foo, bar);
+	}
+	
+	public void testSpyWithPojo(){
+		Employee emp1 = TestUtils.createEmployee("name1", 1, new Date());
+		emp1 = spy(emp1);
+		when(emp1.getName()).thenReturn("name2");
+		
+		assertThat(emp1.getName(), is("name2"));
+		SomethingCallee.checkEmployeeNameEquivalent(emp1, "name2");		
 	}
 }

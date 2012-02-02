@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -13,9 +14,10 @@ import java.util.Set;
 import org.bson.BSONObject;
 import org.bson.BasicBSONDecoder;
 import org.bson.BasicBSONEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 
 import net.wrap_trap.monganez.BSONObjectMapper;
@@ -49,6 +51,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 	private static final int INDEX_SIZE_PER_FILE = 429496729; // Integer.MAX_VALUE(2^31-1)/5 4byte:index file position, 1byte: file index.
 	private static final int INDEX_SIZE_PER_RECORD = 5;
 	
+	private static final int DATA_LENGTH_FIELD_SIZE = 4; // (a.) size of integer.
 	private static final int NEXT_DATA_POINTER_SIZE = 5;
 	
 	private static final int MAX_NUMBER_OF_DATA_FILES = 2;
@@ -63,7 +66,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 	private RandomAccessFile[] dataFiles = new RandomAccessFile[MAX_NUMBER_OF_DATA_FILES];
 	private RandomAccessFile[] indexFiles = new RandomAccessFile[MAX_NUMBER_OF_INDEX_FILES];
 	
-	public FileStoredMap(String dirPath){
+    protected static Logger logger = LoggerFactory.getLogger(FileStoredMap.class); 
+    
+    public FileStoredMap(String dirPath){
 		this.dirPath = dirPath;
 		File dir = new File(this.dirPath);
 		dir.mkdir();
@@ -84,7 +89,14 @@ public class FileStoredMap<V> implements Map<String, V> {
 	public Set<java.util.Map.Entry<String, V>> entrySet() {
 		throw new NotImplementedException();
 	}
+
 	public V get(Object key) {
+		logger.debug(String.format("get, key:%s", key));
+		return getInternal(key);
+	}
+
+	protected V getInternal(Object key) {
+		logger.debug(String.format("getInternal, key:%s", key));
 		long hashCode = toUnsignedInt(key.hashCode());
 		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
 		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
@@ -114,20 +126,42 @@ public class FileStoredMap<V> implements Map<String, V> {
 		indexFile.seek(pos);
 		int dataPos = indexFile.readInt();
 		byte fileNumber = indexFile.readByte();
-		if(dataPos == 0 && fileNumber == 0){
-			// index record is empty.(this record area has cleaned up.)
-			return null;
-		}
 		return readFrom(key, dataPos, fileNumber);
 	}
 
 	protected BSONObject readFrom(String key, int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
-		RandomAccessFile dataFile = getDataFile(fileNumber);
-		return readDataFile(key, dataFile, dataPos);
+		logger.debug(String.format("readFrom, key:%s, dataPos:%d, fileNumber:%d", key, dataPos, fileNumber));
+		if(dataPos == 0 && fileNumber == 0){
+			// index record is empty.(this record area has cleaned up.)
+			return null;
+		}
+		return readDataFile(key, dataPos, fileNumber);
 	}
 
-	protected BSONObject readDataFile(String key, RandomAccessFile dataFile, int dataPos)
+	protected BSONObject readDataFile(String key, int dataPos, byte fileNumber)
 			throws IOException {
+		logger.debug(String.format("readDataFile, key:%s, dataPos:%d, fileNumber:%d", key, dataPos, fileNumber));
+		DataRef dataRef = getDataRef(dataPos, fileNumber);
+		BSONObject bsonObject = dataRef.getBsonObject();
+		Set<String> bsonKeys = (Set<String>)bsonObject.keySet();
+		Preconditions.checkArgument(bsonKeys.size() == 1);
+		if(key.equals(getKey(bsonObject))){
+			return bsonObject;
+		}
+		return readFrom(key, dataRef.getNextPointer(), dataRef.getNextFileNumber());
+	}
+	
+	protected String getKey(BSONObject bsonObject) {
+		Set<String> bsonKeys = (Set<String>)bsonObject.keySet();
+		Preconditions.checkArgument(bsonKeys.size() == 1);
+		for(String bsonKey : bsonKeys){
+			return bsonKey;
+		}
+		throw new IllegalArgumentException("Specified bsonObject is not key-value forms.");
+	}
+	
+	protected DataRef getDataRef(int dataPos, byte fileNumber) throws IOException {
+		RandomAccessFile dataFile = getDataFile(fileNumber);
 		dataFile.seek(dataPos);
 		int dataLength = dataFile.readInt();
 		int bodySize = dataLength - NEXT_DATA_POINTER_SIZE;
@@ -136,18 +170,11 @@ public class FileStoredMap<V> implements Map<String, V> {
 			throw new RuntimeException("error");
 		}
 		BSONObject bsonObject = decoder.readObject(buf);
-		Set<String> bsonKeys = (Set<String>)bsonObject.keySet();
-		Preconditions.checkArgument(bsonKeys.size() == 1);
-		for(String bsonKey : bsonKeys){
-			if(key.equals(bsonKey)){
-				return bsonObject;
-			}
-		}
 		int nextDataPos = dataFile.readInt();
 		byte nextFileNumber = dataFile.readByte();
-		
-		return readFrom(key, nextDataPos, nextFileNumber);
+		return new DataRef(bsonObject, dataPos, fileNumber, nextDataPos, nextFileNumber);
 	}
+	
 	public boolean isEmpty() {
 		throw new NotImplementedException();
 	}
@@ -156,12 +183,17 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	public V remove(Object key) {
+		logger.debug(String.format("remove, key:%s", key));
+		return removeInternal(key);
+	}
+
+	protected V removeInternal(Object key){
+		logger.debug(String.format("removeInternal, key:%s", key));
 		long hashCode = toUnsignedInt(key.hashCode());
 		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
 		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
 		
 		RandomAccessFile indexFile = null;
-		RandomAccessFile dataFile = null;
 		try{
 			indexFile = getIndexFile(idx);
 			if(indexFile.length() < pos + INDEX_SIZE_PER_RECORD){
@@ -169,39 +201,61 @@ public class FileStoredMap<V> implements Map<String, V> {
 			}
 			indexFile.seek(pos);
 			int dataPos = indexFile.readInt();
-			String dataFilePath = getDataFilePath(indexFile.readByte());
-			dataFile = new RandomAccessFile(dataFilePath, "r");
-			dataFile.seek(dataPos);
-			int dataLength = dataFile.readInt();
-			dataFile.seek(dataPos + 4/* size of dataLength filed */ + dataLength - NEXT_DATA_POINTER_SIZE);
-			int nextDataPos = dataFile.readInt();
-			if(nextDataPos == 0){
-				clearIndex(indexFile, pos);
-			}else{
-				updateIndex(indexFile, pos, nextDataPos, dataFile.readByte());
-			}
-			BSONObject bsonObject = readDataFile(key.toString(), dataFile, dataPos);
+			byte dataFileNumber = indexFile.readByte();
+			BSONObject bsonObject = removeBSON(key.toString(), dataPos, dataFileNumber, indexFile, pos, new ArrayList<DataRef>());
 			return rebuildValue(bsonObject);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}
 	}
 	
-	protected void clearIndex(RandomAccessFile indexFile, int pos) throws IOException{
-		indexFile.seek(pos);
-		indexFile.write(new byte[INDEX_SIZE_PER_RECORD]);
+	protected BSONObject removeBSON(String key, int dataPos, byte dataFileNumber, RandomAccessFile indexFile, int indexPos, List<DataRef> dataRefList) throws IOException{
+		logger.debug(String.format("readBSON, key:%s, dataPos:%d, dataFileNumber:%d, indexFile:%s, indexPos:%d, dataRefList:%s", key, dataPos, dataFileNumber, indexFile, indexPos, dataRefList));
+		DataRef dataRef = getDataRef(dataPos, dataFileNumber);
+		if(key.equals(getKey(dataRef.getBsonObject()))) {
+			if((dataRef.getNextPointer() == 0) && (dataRef.getNextFileNumber() == 0) && (dataRefList.size() == 0)){
+				// remain this one only
+				clearIndex(indexFile, indexPos);					
+			} else if(dataRefList.size() > 0) {
+				
+				DataRef lastDataRef = dataRefList.get(dataRefList.size() - 1);
+				RandomAccessFile dataFile = getDataFile(lastDataRef.getCurrentFileNumber());
+				dataFile.seek(lastDataRef.getCurrentPointer());
+				int length = dataFile.readInt();
+				dataFile.seek(lastDataRef.getCurrentPointer() + DATA_LENGTH_FIELD_SIZE + length - NEXT_DATA_POINTER_SIZE);
+				dataFile.writeInt(dataRef.getNextPointer());
+				dataFile.writeByte(dataRef.getNextFileNumber());				
+			} else {
+				// remove at the first element.
+				updateIndex(indexFile, indexPos, dataRef.getNextPointer(), dataRef.getNextFileNumber());
+			}
+			return dataRef.getBsonObject();
+		} else {
+			dataRefList.add(dataRef);
+			return removeBSON(key, dataRef.getNextPointer(), dataRef.getNextFileNumber(), indexFile, indexPos, dataRefList);	
+		}
 	}
 	
-	protected void updateIndex(RandomAccessFile indexFile, int indexPos, int nextDataPos, byte nextDataFileNumber) throws IOException{
+	protected void clearIndex(RandomAccessFile indexFile, int pos) throws IOException{
+		logger.debug(String.format("clearIndex, indexFile:%s, pos:%d", indexFile, pos));
+		indexFile.seek(pos);
+		indexFile.writeInt(0);
+		indexFile.writeByte(0);
+	}
+	
+	protected void updateIndex(RandomAccessFile indexFile, int indexPos, int dataPos, byte dataFileNumber) throws IOException{
+		logger.debug(String.format("updateIndex, indexPos:%d, dataPos:%d, dataFileNumber:%d", indexPos, dataPos, dataFileNumber));
 		indexFile.seek(indexPos);
-		indexFile.writeInt(nextDataPos);
-		indexFile.writeByte(nextDataFileNumber);
+		indexFile.writeInt(dataPos);
+		indexFile.writeByte(dataFileNumber);
+		logger.debug(String.format("\twrite to index file, indexPos:%d, dataPos:%d, dataFileNumber:%d", indexPos, dataPos, dataFileNumber));
 	}
 	
 	public V put(String key, V value) {
-		V pre = get(key);
+		logger.debug(String.format("put, key:%s, value:%s", key, value));
+		V pre = getInternal(key);
 		if(pre != null){
-			remove(key);
+			removeInternal(key);
 		}
 		
 		long hashCode = toUnsignedInt(key.hashCode());
@@ -211,12 +265,8 @@ public class FileStoredMap<V> implements Map<String, V> {
 		RandomAccessFile indexFile = null;
 		try {
 			indexFile = getIndexFile(idx);
-			if(containsKey(indexFile, pos)){
-				throw new NotImplementedException("already exists.");
-			} else {
-				indexFile.seek(pos);
-				writeTo(indexFile, key, value);
-			}
+			indexFile.seek(pos);
+			writeTo(indexFile, key, value);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -246,6 +296,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	protected void writeTo(RandomAccessFile indexFile, byte[] bytes) {
+		logger.debug(String.format("writeTo, indexFile:%s, bytes:%s", indexFile, bytes));
 		RandomAccessFile dataFile = null;
 		try{
 			byte lastDataFileNumber = getLastDataFileNumber();
@@ -253,12 +304,14 @@ public class FileStoredMap<V> implements Map<String, V> {
 
 			long dataPos = dataFile.length();
 			dataFile.seek(dataPos);
-			dataFile.writeInt(bytes.length + NEXT_DATA_POINTER_SIZE);
+			int length = bytes.length + NEXT_DATA_POINTER_SIZE;
+			dataFile.writeInt(length);
 			dataFile.write(bytes);
 			dataFile.writeInt(0); // the file position of next data.
 			dataFile.writeByte(0); // the file position of next data.
 			
-			updateIndex(indexFile, dataPos, lastDataFileNumber);	
+			logger.debug(String.format("\twrite to data file, dataPos:%d, length:%d", dataPos, DATA_LENGTH_FIELD_SIZE + length));
+			updateIndex(indexFile, dataPos, lastDataFileNumber);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -280,8 +333,7 @@ public class FileStoredMap<V> implements Map<String, V> {
 			}
 		}
 		if(indexWritable){
-			indexFile.writeInt((int)dataPos);
-			indexFile.writeByte(lastDataFileNumber);
+			updateIndex(indexFile, (int)pos, (int)dataPos, lastDataFileNumber);
 		}else{
 			updateNextRef((int)dataPos, lastDataFileNumber, dataRef, dataFileNumber);
 		}
@@ -295,13 +347,14 @@ public class FileStoredMap<V> implements Map<String, V> {
 			RandomAccessFile f = getDataFile(dataFileNumber);
 			f.seek(dataPos);
 			int dataSize = f.readInt();
-			f.seek(dataPos + dataSize - NEXT_DATA_POINTER_SIZE);
+			f.seek(dataPos + DATA_LENGTH_FIELD_SIZE + dataSize - NEXT_DATA_POINTER_SIZE);
 			int nextDataPos = f.readInt();
 			byte nextFileNumber = f.readByte();
 			if(nextDataPos == 0 && nextFileNumber == 0){
-				f.seek(dataPos + dataSize - NEXT_DATA_POINTER_SIZE);
+				f.seek(dataPos + DATA_LENGTH_FIELD_SIZE + dataSize - NEXT_DATA_POINTER_SIZE);
 				f.writeInt(orgDataPos);
 				f.writeByte(orgDataFileNumber);
+				logger.debug(String.format("\tupdate to data file, dataPos:%d, nextDataPos:%d, nextDataFileNumber:%d", dataPos, orgDataPos, orgDataFileNumber));
 				return;
 			}else{
 				dataPos = nextDataPos;
