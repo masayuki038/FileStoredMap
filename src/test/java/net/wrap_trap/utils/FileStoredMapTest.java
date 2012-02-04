@@ -5,11 +5,15 @@ import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
 
 public class FileStoredMapTest {
+	
+    protected static Logger logger = LoggerFactory.getLogger(FileStoredMapTest.class); 
 	
 	@Before
 	public void setUp() throws IOException{
@@ -28,15 +32,15 @@ public class FileStoredMapTest {
 			employer.addEmployee(emp1);
 			employer.addEmployee(emp2);
 			long c1 = System.currentTimeMillis();
-			System.out.println(String.format("c1 - start: %d", c1 - start));
+			logger.debug("c1 - start: {}", c1 - start);
 			
 			map.put("employer", employer);
 			long c2 = System.currentTimeMillis();
-			System.out.println(String.format("c2 - c1: %d", c2 - c1));
+			logger.debug("c2 - c1: {}", c2 - c1);
 
 			Employer rEmployer = map.get("employer");
 			long c3 = System.currentTimeMillis();
-			System.out.println(String.format("c3 - c2: %d", c3 - c2));
+			logger.debug("c3 - c2: {}", c3 - c2);
 
 			assertThat(rEmployer.getName(), is(employer.getName()));
 			assertThat(rEmployer.getEmpList().size(), is(2));

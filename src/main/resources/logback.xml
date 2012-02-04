@@ -8,11 +8,11 @@
   </appender>
 
   <logger name="net.wrap_trap.utils">
-    <level value="debug" />
+    <level value="TRACE" />
   </logger>
 
   <root>
-    <level value="warn" />
+    <level value="WARN" />
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>

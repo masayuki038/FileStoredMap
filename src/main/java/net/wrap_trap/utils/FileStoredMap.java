@@ -91,12 +91,16 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 
 	public V get(Object key) {
-		logger.debug(String.format("get, key:%s", key));
+		if(logger.isTraceEnabled()){
+			logger.trace("get, key:{}", key);
+		}
 		return getInternal(key);
 	}
 
 	protected V getInternal(Object key) {
-		logger.debug(String.format("getInternal, key:%s", key));
+		if(logger.isTraceEnabled()){
+			logger.trace("getInternal, key:{}", key);
+		}
 		long hashCode = toUnsignedInt(key.hashCode());
 		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
 		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
@@ -130,7 +134,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 
 	protected BSONObject readFrom(String key, int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
-		logger.debug(String.format("readFrom, key:%s, dataPos:%d, fileNumber:%d", key, dataPos, fileNumber));
+		if(logger.isTraceEnabled()){
+			logger.trace("readFrom, key:{}, dataPos:{}, fileNumber:{}", new Object[]{key, dataPos, fileNumber});
+		}
 		if(dataPos == 0 && fileNumber == 0){
 			// index record is empty.(this record area has cleaned up.)
 			return null;
@@ -140,7 +146,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 
 	protected BSONObject readDataFile(String key, int dataPos, byte fileNumber)
 			throws IOException {
-		logger.debug(String.format("readDataFile, key:%s, dataPos:%d, fileNumber:%d", key, dataPos, fileNumber));
+		if(logger.isTraceEnabled()){
+			logger.trace("readDataFile, key:{}, dataPos:{}, fileNumber:{}", new Object[]{key, dataPos, fileNumber});
+		}
 		DataRef dataRef = getDataRef(dataPos, fileNumber);
 		BSONObject bsonObject = dataRef.getBsonObject();
 		Set<String> bsonKeys = (Set<String>)bsonObject.keySet();
@@ -183,12 +191,16 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	public V remove(Object key) {
-		logger.debug(String.format("remove, key:%s", key));
+		if(logger.isTraceEnabled()){
+			logger.trace("remove, key:{}", key);
+		}
 		return removeInternal(key);
 	}
 
 	protected V removeInternal(Object key){
-		logger.debug(String.format("removeInternal, key:%s", key));
+		if(logger.isTraceEnabled()){
+			logger.trace("removeInternal, key:{}", key);
+		}
 		long hashCode = toUnsignedInt(key.hashCode());
 		int idx = (int)(hashCode / INDEX_SIZE_PER_FILE) + 1;
 		int pos = (int)(hashCode % INDEX_SIZE_PER_FILE);
@@ -210,7 +222,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	protected BSONObject removeBSON(String key, int dataPos, byte dataFileNumber, RandomAccessFile indexFile, int indexPos, List<DataRef> dataRefList) throws IOException{
-		logger.debug(String.format("readBSON, key:%s, dataPos:%d, dataFileNumber:%d, indexFile:%s, indexPos:%d, dataRefList:%s", key, dataPos, dataFileNumber, indexFile, indexPos, dataRefList));
+		if(logger.isTraceEnabled()){
+			logger.trace("removeBSON, key:{}, dataPos:{}, dataFileNumber:{}, indexFile:{}, indexPos:{}, dataRefList:{}", new Object[]{key, dataPos, dataFileNumber, indexFile, indexPos, dataRefList});
+		}
 		DataRef dataRef = getDataRef(dataPos, dataFileNumber);
 		if(key.equals(getKey(dataRef.getBsonObject()))) {
 			if((dataRef.getNextPointer() == 0) && (dataRef.getNextFileNumber() == 0) && (dataRefList.size() == 0)){
@@ -237,22 +251,30 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	protected void clearIndex(RandomAccessFile indexFile, int pos) throws IOException{
-		logger.debug(String.format("clearIndex, indexFile:%s, pos:%d", indexFile, pos));
+		if(logger.isTraceEnabled()){
+			logger.trace("clearIndex, indexFile:%s, pos:%d", indexFile, pos);
+		}
 		indexFile.seek(pos);
 		indexFile.writeInt(0);
 		indexFile.writeByte(0);
 	}
 	
 	protected void updateIndex(RandomAccessFile indexFile, int indexPos, int dataPos, byte dataFileNumber) throws IOException{
-		logger.debug(String.format("updateIndex, indexPos:%d, dataPos:%d, dataFileNumber:%d", indexPos, dataPos, dataFileNumber));
+		if(logger.isTraceEnabled()){
+			logger.trace("updateIndex, indexPos:%d, dataPos:%d, dataFileNumber:%d", new Object[]{indexPos, dataPos, dataFileNumber});
+		}
 		indexFile.seek(indexPos);
 		indexFile.writeInt(dataPos);
 		indexFile.writeByte(dataFileNumber);
-		logger.debug(String.format("\twrite to index file, indexPos:%d, dataPos:%d, dataFileNumber:%d", indexPos, dataPos, dataFileNumber));
+		if(logger.isTraceEnabled()){
+			logger.trace("\twrite to index file, indexPos:%d, dataPos:%d, dataFileNumber:%d", new Object[]{indexPos, dataPos, dataFileNumber});
+		}
 	}
 	
 	public V put(String key, V value) {
-		logger.debug(String.format("put, key:%s, value:%s", key, value));
+		if(logger.isTraceEnabled()){
+			logger.trace("put, key:%s, value:%s", key, value);
+		}
 		V pre = getInternal(key);
 		if(pre != null){
 			removeInternal(key);
@@ -296,7 +318,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 	
 	protected void writeTo(RandomAccessFile indexFile, byte[] bytes) {
-		logger.debug(String.format("writeTo, indexFile:%s, bytes:%s", indexFile, bytes));
+		if(logger.isTraceEnabled()){
+			logger.trace("writeTo, indexFile:%s, bytes:%s", indexFile, bytes);
+		}
 		RandomAccessFile dataFile = null;
 		try{
 			byte lastDataFileNumber = getLastDataFileNumber();
@@ -310,7 +334,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 			dataFile.writeInt(0); // the file position of next data.
 			dataFile.writeByte(0); // the file position of next data.
 			
-			logger.debug(String.format("\twrite to data file, dataPos:%d, length:%d", dataPos, DATA_LENGTH_FIELD_SIZE + length));
+			if(logger.isTraceEnabled()){
+				logger.trace("\twrite to data file, dataPos:%d, length:%d", dataPos, DATA_LENGTH_FIELD_SIZE + length);
+			}
 			updateIndex(indexFile, dataPos, lastDataFileNumber);
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
@@ -354,7 +380,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 				f.seek(dataPos + DATA_LENGTH_FIELD_SIZE + dataSize - NEXT_DATA_POINTER_SIZE);
 				f.writeInt(orgDataPos);
 				f.writeByte(orgDataFileNumber);
-				logger.debug(String.format("\tupdate to data file, dataPos:%d, nextDataPos:%d, nextDataFileNumber:%d", dataPos, orgDataPos, orgDataFileNumber));
+				if(logger.isTraceEnabled()){
+					logger.trace("\tupdate to data file, dataPos:%d, nextDataPos:%d, nextDataFileNumber:%d", new Object[]{dataPos, orgDataPos, orgDataFileNumber});
+				}
 				return;
 			}else{
 				dataPos = nextDataPos;
@@ -462,9 +490,10 @@ public class FileStoredMap<V> implements Map<String, V> {
 	}
 
 	protected void dump(byte[] bin){
+		StringBuilder buf = new StringBuilder();
 	    for (byte b : bin) {
-		      System.out.print(Integer.toHexString(b & 0xFF) + " ");
+	    	buf.append(Integer.toHexString(b & 0xFF) + " ");
 		}
-	    System.out.println();
+	    logger.debug(buf.toString());
 	}
 }
