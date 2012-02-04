@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.when;
 
+import java.io.IOException;
 import java.util.Date;
 
 import org.junit.Test;
@@ -17,7 +18,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PrepareForTest(FileStoredMap.class)
 public class FileStoredMapWithHashCollisionTest {
     @Test
-    public void testGetWithHashCollistion() {
+    public void testGetWithHashCollistion() throws IOException {
         String key1 = "key1";
         String key2 = "key2";
 
@@ -44,7 +45,7 @@ public class FileStoredMapWithHashCollisionTest {
     }
 
     @Test
-    public void testRemoveWithHashCollistion() {
+    public void testRemoveWithHashCollistion() throws IOException {
         String key1 = "key1";
         String key2 = "key2";
 

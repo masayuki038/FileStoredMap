@@ -20,7 +20,7 @@ public class FileStoredMapTest {
     public void setUp() throws IOException {}
 
     @Test
-    public void testPutNestedPojo() {
+    public void testPutNestedPojo() throws IOException {
         TestUtils.deleteFiles("tmp/empdir2");
         long start = System.currentTimeMillis();
         FileStoredMap<Employer> map = null;
@@ -55,7 +55,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testPutPojo() {
+    public void testPutPojo() throws IOException {
         TestUtils.deleteFiles("tmp/empdir");
         FileStoredMap<Employee> map = null;
         try {
@@ -72,7 +72,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testPutString() {
+    public void testPutString() throws IOException {
         TestUtils.deleteFiles("tmp/pridir");
         FileStoredMap<String> map = null;
         try {
@@ -88,7 +88,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testPutInt() {
+    public void testPutInt() throws IOException {
         TestUtils.deleteFiles("tmp/pridir");
         FileStoredMap<Integer> map = null;
         try {
@@ -104,7 +104,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testGetNull() {
+    public void testGetNull() throws IOException {
         TestUtils.deleteFiles("tmp/remove1");
         FileStoredMap<Employee> map = null;
         try {
@@ -120,7 +120,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testRemoveNoIndexFile() {
+    public void testRemoveNoIndexFile() throws IOException {
         TestUtils.deleteFiles("tmp/remove2");
         FileStoredMap<Employee> map = null;
         try {
@@ -134,7 +134,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testRemoveNull() {
+    public void testRemoveNull() throws IOException {
         TestUtils.deleteFiles("tmp/remove3");
         FileStoredMap<Employee> map = null;
         try {
@@ -150,7 +150,7 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testRemove() {
+    public void testRemove() throws IOException {
         TestUtils.deleteFiles("tmp/remove4");
         FileStoredMap<Employee> map = null;
         try {
