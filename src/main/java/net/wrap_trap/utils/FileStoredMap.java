@@ -231,7 +231,6 @@ public class FileStoredMap<V> implements Map<String, V> {
                 // remain this one only
                 clearIndex(indexFile, indexPos);
             } else if (dataRefList.size() > 0) {
-
                 DataRef lastDataRef = dataRefList.get(dataRefList.size() - 1);
                 RandomAccessFile dataFile = getDataFile(lastDataRef.getCurrentFileNumber());
                 dataFile.seek(lastDataRef.getCurrentPointer());
