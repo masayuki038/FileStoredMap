@@ -22,19 +22,19 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public void clear() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public boolean containsKey(Object key) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public boolean containsValue(Object value) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public Set<java.util.Map.Entry<String, V>> entrySet() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public V get(Object key) {
@@ -45,11 +45,11 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public boolean isEmpty() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public Set<String> keySet() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public V remove(Object key) {
@@ -67,15 +67,15 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public void putAll(Map<? extends String, ? extends V> map) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public int size() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public Collection<V> values() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public void close() throws IOException {
