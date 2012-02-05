@@ -34,11 +34,11 @@ public class FileStoredMapTest {
             long c1 = System.currentTimeMillis();
             logger.debug("c1 - start: {}", c1 - start);
 
-            map.put("employer", employer);
+            map.put("emp", employer);
             long c2 = System.currentTimeMillis();
             logger.debug("c2 - c1: {}", c2 - c1);
 
-            Employer rEmployer = map.get("employer");
+            Employer rEmployer = map.get("emp");
             long c3 = System.currentTimeMillis();
             logger.debug("c3 - c2: {}", c3 - c2);
 

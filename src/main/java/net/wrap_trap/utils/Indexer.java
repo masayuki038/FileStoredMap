@@ -115,6 +115,15 @@ public class Indexer implements Closeable {
         }
     }
 
+    public void clearIndex(RandomAccessFile indexFile, int pos) throws IOException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("clearIndex, indexFile:{}, pos:{}", indexFile, pos);
+        }
+        indexFile.seek(pos);
+        indexFile.writeInt(0);
+        indexFile.writeByte(0);
+    }
+
     protected long toUnsignedInt(int i) {
         return i & 0xffffffffL;
     }
