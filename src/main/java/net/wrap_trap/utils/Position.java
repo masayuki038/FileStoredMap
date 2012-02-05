@@ -1,17 +1,17 @@
 package net.wrap_trap.utils;
 
-public class IndexRef {
+public class Position {
 
-    private int fileNumber;
+    private byte fileNumber;
     private int pointer;
 
-    public IndexRef(int fileNumber, int pointer) {
+    public Position(byte fileNumber, int pointer) {
         super();
         this.fileNumber = fileNumber;
         this.pointer = pointer;
     }
 
-    public int getFileNumber() {
+    public byte getFileNumber() {
         return fileNumber;
     }
 

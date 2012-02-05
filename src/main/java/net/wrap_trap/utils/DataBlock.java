@@ -2,7 +2,7 @@ package net.wrap_trap.utils;
 
 import org.bson.BSONObject;
 
-public class DataRef {
+public class DataBlock {
 
     private BSONObject bsonObject;
     private int currentPointer;
@@ -10,7 +10,7 @@ public class DataRef {
     private int nextPointer;
     private byte nextFileNumber;
 
-    public DataRef(BSONObject bsonObject, int currentPointer, byte currentFileNumber, int nextPointer,
+    public DataBlock(BSONObject bsonObject, int currentPointer, byte currentFileNumber, int nextPointer,
             byte nextFileNumber) {
         super();
         this.bsonObject = bsonObject;
