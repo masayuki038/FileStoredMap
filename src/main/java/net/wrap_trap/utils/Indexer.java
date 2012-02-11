@@ -92,6 +92,7 @@ public class Indexer implements Closeable {
         this.currentVersion = VERSION;
         indexFile.writeInt(this.currentVersion);
         indexFile.writeInt(this.bucketSize);
+        indexFile.setLength(HEADER_SIZE + (INDEX_SIZE_PER_RECORD * this.bucketSize));
     }
 
     public Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
