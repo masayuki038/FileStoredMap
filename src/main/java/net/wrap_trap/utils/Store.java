@@ -2,6 +2,7 @@ package net.wrap_trap.utils;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Set;
 
 public interface Store<V> extends Closeable {
 
@@ -14,5 +15,7 @@ public interface Store<V> extends Closeable {
     void clear();
 
     int size() throws IOException;
+
+    Set<String> keySet();
 
 }

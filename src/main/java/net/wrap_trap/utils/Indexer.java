@@ -187,4 +187,12 @@ public class Indexer implements Closeable {
         indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
         return indexFile.readInt();
     }
+
+    public void seekIndexHead(RandomAccessFile indexFile) throws IOException {
+        indexFile.seek(HEADER_SIZE);
+    }
+
+    public boolean hasNext(RandomAccessFile indexFile) throws IOException {
+        return (indexFile.getFilePointer() < (HEADER_SIZE + (bucketSize * INDEX_SIZE_PER_RECORD)));
+    }
 }

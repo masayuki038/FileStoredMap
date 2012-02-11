@@ -6,6 +6,8 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -217,4 +219,28 @@ public class FileStoredMapTest {
         }
     }
 
+    @Test
+    public void testKeySet() throws IOException {
+        TestUtils.deleteFiles("tmp/keyset");
+        FileStoredMap<Employee> map = null;
+        Set<String> expected = new HashSet<String>();
+        expected.add("emp1");
+        expected.add("emp2");
+        expected.add("emp3");
+        try {
+            map = new FileStoredMap<Employee>("tmp/keyset", 2);
+            map.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
+            map.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
+            map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
+
+            for (String key : map.keySet()) {
+                assertThat(expected.remove(key), is(true));
+            }
+            assertThat(expected.isEmpty(), is(true));
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
 }

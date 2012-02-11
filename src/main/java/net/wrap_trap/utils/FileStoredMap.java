@@ -65,7 +65,10 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public Set<String> keySet() {
-        throw new UnsupportedOperationException();
+        if (logger.isTraceEnabled()) {
+            logger.trace("isEmpty, ");
+        }
+        return store.keySet();
     }
 
     public V remove(Object key) {
