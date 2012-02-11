@@ -1,11 +1,13 @@
 package net.wrap_trap.utils;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +18,13 @@ public class BsonStore<V> implements Store<V> {
 
     private Indexer indexer;
     private DataManager<V> dataManager;
+    private String dirPath;
+    private int bucketSize;
 
     public BsonStore(String path, int bucketSize) {
-        this.dataManager = new DataManager<V>(path);
-        this.indexer = new Indexer(path, bucketSize);
+        this.dirPath = path;
+        this.bucketSize = bucketSize;
+        initialize();
     }
 
     @Override
@@ -54,11 +59,14 @@ public class BsonStore<V> implements Store<V> {
         }
 
         try {
-            Position indexRef = indexer.getIndexRef(key);
-            RandomAccessFile indexFile = indexer.getIndexFile(indexRef.getFileNumber());
-            indexFile.seek(indexRef.getPointer());
-            Position pos = dataManager.writeTo(indexFile, key, value);
-            updateIndex(indexFile, pos.getPointer(), pos.getFileNumber());
+            synchronized (this) {
+                Position indexRef = indexer.getIndexRef(key);
+                RandomAccessFile indexFile = indexer.getIndexFile(indexRef.getFileNumber());
+                indexFile.seek(indexRef.getPointer());
+                Position pos = dataManager.writeTo(indexFile, key, value);
+                updateIndex(indexFile, pos.getPointer(), pos.getFileNumber());
+                indexer.incrementEntryCount();
+            }
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -70,25 +78,46 @@ public class BsonStore<V> implements Store<V> {
         if (logger.isTraceEnabled()) {
             logger.trace("remove, key:{}", key);
         }
-
-        try {
-            Position indexRef = indexer.getIndexRef(key);
-            RandomAccessFile indexFile = indexer.getIndexFile(indexRef.getFileNumber());
-            Position dataRef = indexer.getDataPosition(indexFile, indexRef);
-            if (dataRef == null)
-                return null;
-            BSONObject bsonObject = removeBSON(key.toString(), dataRef.getPointer(), dataRef.getFileNumber(),
-                                               indexFile, indexRef.getPointer(), new ArrayList<DataBlock>());
-            return dataManager.rebuildValue(bsonObject);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
+        synchronized (this) {
+            try {
+                Position indexRef = indexer.getIndexRef(key);
+                RandomAccessFile indexFile = indexer.getIndexFile(indexRef.getFileNumber());
+                Position dataRef = indexer.getDataPosition(indexFile, indexRef);
+                if (dataRef == null)
+                    return null;
+                BSONObject bsonObject = removeBSON(key.toString(), dataRef.getPointer(), dataRef.getFileNumber(),
+                                                   indexFile, indexRef.getPointer(), new ArrayList<DataBlock>());
+                indexer.decrementEntryCount();
+                return dataManager.rebuildValue(bsonObject);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
         }
+    }
+
+    @Override
+    public void clear() {
+        close();
+        deleteDirectory();
+        initialize();
     }
 
     @Override
     public void close() {
         dataManager.close();
         indexer.close();
+    }
+
+    protected void initialize() {
+        this.dataManager = new DataManager<V>(this.dirPath);
+        this.indexer = new Indexer(this.dirPath, this.bucketSize);
+    }
+
+    protected void deleteDirectory() {
+        try {
+            FileUtils.deleteDirectory(new File(this.dirPath));
+        } catch (IOException ignore) {}
+
     }
 
     protected BSONObject readFrom(String key, RandomAccessFile indexFile, Position indexRef) throws IOException,
@@ -145,4 +174,8 @@ public class BsonStore<V> implements Store<V> {
         logger.debug(buf.toString());
     }
 
+    @Override
+    public int size() throws IOException {
+        return indexer.getEntryCount();
+    }
 }

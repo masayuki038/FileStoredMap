@@ -20,26 +20,47 @@ public class FileStoredMapTest {
     public void setUp() throws IOException {}
 
     @Test
-    public void testReopen() throws IOException {
-        TestUtils.deleteFiles("tmp/reopen");
-        FileStoredMap<Employee> map = null;
-        Employee emp1 = null;
+    public void testPutString() throws IOException {
+        TestUtils.deleteFiles("tmp/pridir");
+        FileStoredMap<String> map = null;
         try {
-            map = new FileStoredMap<Employee>("tmp/reopen");
-            emp1 = TestUtils.createEmployee("foo", 256, new Date());
-            map.put("emp1", emp1);
-            Employee ret = map.get("emp1");
-            TestUtils.assertEmployeeEquivalent(emp1, ret);
+            map = new FileStoredMap<String>("tmp/pridir");
+            map.put("foo", "bar");
+            String ret = map.get("foo");
+            assertThat(ret, is("bar"));
         } finally {
             if (map != null) {
                 map.close();
             }
         }
+    }
 
+    @Test
+    public void testPutInt() throws IOException {
+        TestUtils.deleteFiles("tmp/pridir");
+        FileStoredMap<Integer> map = null;
         try {
-            map = new FileStoredMap<Employee>("tmp/reopen", 512);
-            Employee ret = map.get("emp1");
-            TestUtils.assertEmployeeEquivalent(emp1, ret);
+            map = new FileStoredMap<Integer>("tmp/pridir");
+            map.put("foo", 1);
+            int ret = map.get("foo");
+            assertThat(ret, is(1));
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
+
+    @Test
+    public void testPutPojo() throws IOException {
+        TestUtils.deleteFiles("tmp/empdir");
+        FileStoredMap<Employee> map = null;
+        try {
+            map = new FileStoredMap<Employee>("tmp/empdir");
+            Date createdAt = new Date();
+            Employee emp = TestUtils.createEmployee("hoge", 256, createdAt);
+            map.put("emp", emp);
+            TestUtils.assertEmployeeEquivalent(emp, map.get("emp"));
         } finally {
             if (map != null) {
                 map.close();
@@ -75,55 +96,6 @@ public class FileStoredMapTest {
 
             TestUtils.assertEmployeeEquivalent(emp1, rEmployer.getEmpList().get(0));
             TestUtils.assertEmployeeEquivalent(emp2, rEmployer.getEmpList().get(1));
-        } finally {
-            if (map != null) {
-                map.close();
-            }
-        }
-    }
-
-    @Test
-    public void testPutPojo() throws IOException {
-        TestUtils.deleteFiles("tmp/empdir");
-        FileStoredMap<Employee> map = null;
-        try {
-            map = new FileStoredMap<Employee>("tmp/empdir");
-            Date createdAt = new Date();
-            Employee emp = TestUtils.createEmployee("hoge", 256, createdAt);
-            map.put("emp", emp);
-            TestUtils.assertEmployeeEquivalent(emp, map.get("emp"));
-        } finally {
-            if (map != null) {
-                map.close();
-            }
-        }
-    }
-
-    @Test
-    public void testPutString() throws IOException {
-        TestUtils.deleteFiles("tmp/pridir");
-        FileStoredMap<String> map = null;
-        try {
-            map = new FileStoredMap<String>("tmp/pridir");
-            map.put("foo", "bar");
-            String ret = map.get("foo");
-            assertThat(ret, is("bar"));
-        } finally {
-            if (map != null) {
-                map.close();
-            }
-        }
-    }
-
-    @Test
-    public void testPutInt() throws IOException {
-        TestUtils.deleteFiles("tmp/pridir");
-        FileStoredMap<Integer> map = null;
-        try {
-            map = new FileStoredMap<Integer>("tmp/pridir");
-            map.put("foo", 1);
-            int ret = map.get("foo");
-            assertThat(ret, is(1));
         } finally {
             if (map != null) {
                 map.close();
@@ -194,4 +166,55 @@ public class FileStoredMapTest {
             }
         }
     }
+
+    @Test
+    public void testReopen() throws IOException {
+        TestUtils.deleteFiles("tmp/reopen");
+        FileStoredMap<Employee> map = null;
+        Employee emp1 = null;
+        try {
+            map = new FileStoredMap<Employee>("tmp/reopen");
+            emp1 = TestUtils.createEmployee("foo", 256, new Date());
+            map.put("emp1", emp1);
+            Employee ret = map.get("emp1");
+            TestUtils.assertEmployeeEquivalent(emp1, ret);
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+
+        try {
+            map = new FileStoredMap<Employee>("tmp/reopen", 512);
+            Employee ret = map.get("emp1");
+            TestUtils.assertEmployeeEquivalent(emp1, ret);
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
+
+    @Test
+    public void testClear() throws IOException {
+        TestUtils.deleteFiles("tmp/clear");
+        FileStoredMap<Employee> map = null;
+        try {
+            map = new FileStoredMap<Employee>("tmp/clear");
+            Employee emp1 = TestUtils.createEmployee("foo", 256, new Date());
+            map.put("emp1", emp1);
+            TestUtils.assertEmployeeEquivalent(emp1, map.get("emp1"));
+            assertThat(map.size(), is(1));
+            map.clear();
+            assertThat(map.get("emp1"), nullValue());
+            assertThat(map.size(), is(0));
+            map.put("emp1", emp1);
+            TestUtils.assertEmployeeEquivalent(emp1, map.get("emp1"));
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
+
 }

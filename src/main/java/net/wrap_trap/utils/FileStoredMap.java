@@ -14,23 +14,24 @@ public class FileStoredMap<V> implements Map<String, V> {
     protected static Logger logger = LoggerFactory.getLogger(FileStoredMap.class);
 
     private Store<V> store;
+    private String dirPath;
 
     public FileStoredMap(String dirPath) {
         this(dirPath, 4096);
     }
 
     public FileStoredMap(String dirPath, int bucketSize) {
-        initializeDirectory(dirPath);
+        this.dirPath = dirPath;
+        initializeDirectory();
         store = new BsonStore<V>(dirPath, bucketSize);
     }
 
-    private void initializeDirectory(String dirPath) {
-        File dir = new File(dirPath);
-        dir.mkdir();
-    }
-
     public void clear() {
-        throw new UnsupportedOperationException();
+        if (logger.isTraceEnabled()) {
+            logger.trace("clear, ");
+        }
+        store.clear();
+        initializeDirectory();
     }
 
     public boolean containsKey(Object key) {
@@ -53,7 +54,14 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public boolean isEmpty() {
-        throw new UnsupportedOperationException();
+        if (logger.isTraceEnabled()) {
+            logger.trace("isEmpty, ");
+        }
+        try {
+            return (store.size() == 0);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public Set<String> keySet() {
@@ -79,7 +87,14 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public int size() {
-        throw new UnsupportedOperationException();
+        if (logger.isTraceEnabled()) {
+            logger.trace("size, ");
+        }
+        try {
+            return store.size();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public Collection<V> values() {
@@ -88,5 +103,9 @@ public class FileStoredMap<V> implements Map<String, V> {
 
     public void close() throws IOException {
         store.close();
+    }
+
+    protected void initializeDirectory() {
+        new File(this.dirPath).mkdir();
     }
 }

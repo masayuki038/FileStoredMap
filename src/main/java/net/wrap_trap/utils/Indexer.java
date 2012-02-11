@@ -29,6 +29,7 @@ public class Indexer implements Closeable {
     private static final String INDEX_FILE_SUFFIX = ".idx";
     private static final int INDEX_SIZE_PER_RECORD = 5;
     private static final int MAX_NUMBER_OF_INDEX_FILES = 10; // Integer.MAX_VALUE(2^31)/INDEX_SIZE_PER_FILE*2(negative/positive areas of integer)
+    private static final int HEADER_ENTRYCOUNT_OFFSET = 8;
 
     private static final int HEADER_SIZE = 128;
 
@@ -167,4 +168,23 @@ public class Indexer implements Closeable {
         return i & 0xffffffffL;
     }
 
+    public void incrementEntryCount() throws IOException {
+        int count = getEntryCount();
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
+        indexFile.writeInt(count + 1);
+    }
+
+    public void decrementEntryCount() throws IOException {
+        int count = getEntryCount();
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
+        indexFile.writeInt(count - 1);
+    }
+
+    public int getEntryCount() throws IOException {
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
+        return indexFile.readInt();
+    }
 }
