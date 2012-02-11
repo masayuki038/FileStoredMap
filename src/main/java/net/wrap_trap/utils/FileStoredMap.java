@@ -13,12 +13,20 @@ public class FileStoredMap<V> implements Map<String, V> {
 
     protected static Logger logger = LoggerFactory.getLogger(FileStoredMap.class);
 
-    private Store<V> store = new BsonStore<V>();
+    private Store<V> store;
 
     public FileStoredMap(String dirPath) {
+        this(dirPath, 4096);
+    }
+
+    public FileStoredMap(String dirPath, int bucketSize) {
+        initializeDirectory(dirPath);
+        store = new BsonStore<V>(dirPath, bucketSize);
+    }
+
+    private void initializeDirectory(String dirPath) {
         File dir = new File(dirPath);
         dir.mkdir();
-        store.setDirectory(dirPath);
     }
 
     public void clear() {

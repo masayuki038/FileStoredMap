@@ -17,10 +17,9 @@ public class BsonStore<V> implements Store<V> {
     private Indexer indexer;
     private DataManager<V> dataManager;
 
-    @Override
-    public void setDirectory(String path) {
-        this.indexer = new Indexer(path);
+    public BsonStore(String path, int bucketSize) {
         this.dataManager = new DataManager<V>(path);
+        this.indexer = new Indexer(path, bucketSize);
     }
 
     @Override

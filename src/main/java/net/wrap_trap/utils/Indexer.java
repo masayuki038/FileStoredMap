@@ -2,7 +2,6 @@ package net.wrap_trap.utils;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -25,38 +24,74 @@ import com.google.common.io.Closeables;
  */
 public class Indexer implements Closeable {
 
+    private static final int VERSION = 1;
+
     private static final String INDEX_FILE_SUFFIX = ".idx";
     private static final int INDEX_SIZE_PER_RECORD = 5;
     private static final int MAX_NUMBER_OF_INDEX_FILES = 10; // Integer.MAX_VALUE(2^31)/INDEX_SIZE_PER_FILE*2(negative/positive areas of integer)
-    private static final int INDEX_SIZE_PER_FILE = 429496729; // Integer.MAX_VALUE(2^31-1)/5 4byte:index file position, 1byte: file index.
+
+    private static final int HEADER_SIZE = 128;
 
     protected static Logger logger = LoggerFactory.getLogger(Indexer.class);
 
     private RandomAccessFile[] indexFiles = new RandomAccessFile[MAX_NUMBER_OF_INDEX_FILES];
 
     private String dirPath;
+    private int bucketSize;
+    private int currentVersion;
 
     public Indexer(String path) {
+        this(path, 4096);
+    }
+
+    public Indexer(String path, int bucketSize) {
         super();
         this.dirPath = path;
+        this.bucketSize = bucketSize;
     }
 
     public Position getIndexRef(String key) {
         long hashCode = toUnsignedInt(key.hashCode());
-        byte idx = (byte) ((hashCode / (INDEX_SIZE_PER_FILE * INDEX_SIZE_PER_RECORD)) + 1);
-        int pos = (int) ((hashCode % INDEX_SIZE_PER_FILE) * INDEX_SIZE_PER_RECORD);
+        byte idx = 1;
+        int pos = (int) ((hashCode % bucketSize) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
         return new Position(idx, pos);
     }
 
-    public RandomAccessFile getIndexFile(byte indexFileNumber) throws FileNotFoundException {
+    public RandomAccessFile getIndexFile(byte indexFileNumber) throws IOException {
         Preconditions.checkArgument(indexFileNumber <= MAX_NUMBER_OF_INDEX_FILES);
         int idx = indexFileNumber - 1;
         if (indexFiles[idx] != null)
             return indexFiles[idx];
         String indexFilePath = dirPath + File.separator + Integer.toString(idx) + INDEX_FILE_SUFFIX;
-        RandomAccessFile indexFile = new RandomAccessFile(indexFilePath, "rw");
+
+        File file = new File(indexFilePath);
+        boolean isNew = !file.exists();
+
+        RandomAccessFile indexFile = new RandomAccessFile(file, "rw");
+        if (isNew) {
+            initializeIndexfile(indexFile);
+        } else {
+            loadHeader(indexFile);
+        }
         indexFiles[idx] = indexFile;
         return indexFile;
+    }
+
+    protected void loadHeader(RandomAccessFile indexFile) throws IOException {
+        this.currentVersion = indexFile.readInt();
+        int loadedBucketSize = indexFile.readInt();
+        if (this.bucketSize != loadedBucketSize) {
+            logger.warn("Specified bucketSize '{}' is different from the bucketSize '{}' in the header of index file.",
+                        this.bucketSize, loadedBucketSize);
+            logger.warn("Specified bucketSize '{}' is ignored.", this.bucketSize);
+        }
+        this.bucketSize = loadedBucketSize;
+    }
+
+    protected void initializeIndexfile(RandomAccessFile indexFile) throws IOException {
+        this.currentVersion = VERSION;
+        indexFile.writeInt(this.currentVersion);
+        indexFile.writeInt(this.bucketSize);
     }
 
     public Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
@@ -66,6 +101,9 @@ public class Indexer implements Closeable {
         indexFile.seek(pos);
         int dataPos = indexFile.readInt();
         byte dataFileNumber = indexFile.readByte();
+        if (dataFileNumber == 0) {
+            return null;
+        }
         return new Position(dataFileNumber, dataPos);
     }
 

@@ -20,6 +20,34 @@ public class FileStoredMapTest {
     public void setUp() throws IOException {}
 
     @Test
+    public void testReopen() throws IOException {
+        TestUtils.deleteFiles("tmp/reopen");
+        FileStoredMap<Employee> map = null;
+        Employee emp1 = null;
+        try {
+            map = new FileStoredMap<Employee>("tmp/reopen");
+            emp1 = TestUtils.createEmployee("foo", 256, new Date());
+            map.put("emp1", emp1);
+            Employee ret = map.get("emp1");
+            TestUtils.assertEmployeeEquivalent(emp1, ret);
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+
+        try {
+            map = new FileStoredMap<Employee>("tmp/reopen", 512);
+            Employee ret = map.get("emp1");
+            TestUtils.assertEmployeeEquivalent(emp1, ret);
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
+
+    @Test
     public void testPutNestedPojo() throws IOException {
         TestUtils.deleteFiles("tmp/empdir2");
         long start = System.currentTimeMillis();
