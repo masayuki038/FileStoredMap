@@ -53,14 +53,14 @@ public class DataManager<V> implements Closeable {
         this.dirPath = path;
     }
 
-    public BSONObject readFrom(String key, int dataPos, byte fileNumber) throws IOException, FileNotFoundException {
+    public BSONObject readFrom(String key, Position dataRef) throws IOException, FileNotFoundException {
         if (logger.isTraceEnabled()) {
-            logger.trace("readFrom, key:{}, dataPos:{}, fileNumber:{}", new Object[] { key, dataPos, fileNumber });
+            logger.trace("readFrom, key:{}, dataRef:{}", new Object[] { key, dataRef });
         }
-        if (dataPos == 0 && fileNumber == 0)
+        if (dataRef.getPointer() == 0 && dataRef.getFileNumber() == 0)
             // index record is empty.(this record area has cleaned up.)
             return null;
-        return readDataFile(key, dataPos, fileNumber);
+        return readDataFile(key, dataRef);
     }
 
     public void updateNextRef(DataBlock dataRef, DataBlock lastDataRef) throws IOException {
@@ -73,9 +73,9 @@ public class DataManager<V> implements Closeable {
         dataFile.writeByte(dataRef.getNextFileNumber());
     }
 
-    public void updateNextRef(int orgDataPos, byte orgDataFileNumber, int pos, byte fileNumber) throws IOException {
-        int dataPos = pos;
-        byte dataFileNumber = fileNumber;
+    public void updateNextRef(Position rootDataRef, Position nextDataRef) throws IOException {
+        int dataPos = rootDataRef.getPointer();
+        byte dataFileNumber = rootDataRef.getFileNumber();
 
         while (true) {
             RandomAccessFile f = getDataFile(dataFileNumber);
@@ -86,11 +86,11 @@ public class DataManager<V> implements Closeable {
             byte nextFileNumber = f.readByte();
             if (nextDataPos == 0 && nextFileNumber == 0) {
                 f.seek(dataPos + DataManager.DATA_LENGTH_FIELD_SIZE + dataSize - DataManager.NEXT_DATA_POINTER_SIZE);
-                f.writeInt(orgDataPos);
-                f.writeByte(orgDataFileNumber);
+                f.writeInt(nextDataRef.getPointer());
+                f.writeByte(nextDataRef.getFileNumber());
                 if (logger.isTraceEnabled()) {
                     logger.trace("\tupdate to data file, dataPos:{}, nextDataPos:{}, nextDataFileNumber:{}",
-                                 new Object[] { dataPos, orgDataPos, orgDataFileNumber });
+                                 new Object[] { dataPos, nextDataRef.getPointer(), nextDataRef.getFileNumber() });
                 }
                 return;
             } else {
@@ -107,17 +107,20 @@ public class DataManager<V> implements Closeable {
         }
     }
 
-    protected BSONObject readDataFile(String key, int dataPos, byte fileNumber) throws IOException {
+    protected BSONObject readDataFile(String key, Position dataRef) throws IOException {
         if (logger.isTraceEnabled()) {
-            logger.trace("readDataFile, key:{}, dataPos:{}, fileNumber:{}", new Object[] { key, dataPos, fileNumber });
+            logger.trace("readDataFile, key:{}, dataRef:{}", new Object[] { key, dataRef });
         }
-        DataBlock dataBlock = getDataBlock(dataPos, fileNumber);
+        DataBlock dataBlock = getDataBlock(dataRef);
         if (key.equals(getKey(dataBlock)))
             return dataBlock.getBsonObject();
-        return readFrom(key, dataBlock.getNextPointer(), dataBlock.getNextFileNumber());
+        return readFrom(key, new Position(dataBlock.getNextFileNumber(), dataBlock.getNextPointer()));
     }
 
-    public DataBlock getDataBlock(int dataPos, byte fileNumber) throws IOException {
+    public DataBlock getDataBlock(Position dataRef) throws IOException {
+        byte fileNumber = dataRef.getFileNumber();
+        int dataPos = dataRef.getPointer();
+
         RandomAccessFile dataFile = getDataFile(fileNumber);
         dataFile.seek(dataPos);
         int dataLength = dataFile.readInt();
@@ -154,10 +157,10 @@ public class DataManager<V> implements Closeable {
         return dataFile;
     }
 
-    public Position writeTo(RandomAccessFile indexFile, String key, V value) {
+    public Position writeTo(String key, V value) throws IOException {
         try {
             byte[] bytes = toByteArray(key, value);
-            return writeTo(indexFile, bytes);
+            return writeTo(bytes);
         } catch (IllegalAccessException ex) {
             throw new RuntimeException(ex);
         } catch (InvocationTargetException ex) {
@@ -167,31 +170,27 @@ public class DataManager<V> implements Closeable {
         }
     }
 
-    protected Position writeTo(RandomAccessFile indexFile, byte[] bytes) {
+    protected Position writeTo(byte[] bytes) throws IOException {
         if (logger.isTraceEnabled()) {
-            logger.trace("writeTo, indexFile:{}, bytes:{}", indexFile, bytes);
+            logger.trace("writeTo, bytes:{}", bytes);
         }
         RandomAccessFile dataFile = null;
-        try {
-            byte lastDataFileNumber = getLastDataFileNumber();
-            dataFile = getDataFile(lastDataFileNumber);
+        byte lastDataFileNumber = getLastDataFileNumber();
+        dataFile = getDataFile(lastDataFileNumber);
 
-            long dataPos = dataFile.length();
-            dataFile.seek(dataPos);
-            int length = bytes.length + DataManager.NEXT_DATA_POINTER_SIZE;
-            dataFile.writeInt(length);
-            dataFile.write(bytes);
-            dataFile.writeInt(0); // the file position of next data.
-            dataFile.writeByte(0); // the file position of next data.
+        long dataPos = dataFile.length();
+        dataFile.seek(dataPos);
+        int length = bytes.length + DataManager.NEXT_DATA_POINTER_SIZE;
+        dataFile.writeInt(length);
+        dataFile.write(bytes);
+        dataFile.writeInt(0); // the file position of next data.
+        dataFile.writeByte(0); // the file position of next data.
 
-            if (logger.isTraceEnabled()) {
-                logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos,
-                             DataManager.DATA_LENGTH_FIELD_SIZE + length);
-            }
-            return new Position(lastDataFileNumber, (int) dataPos);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
+        if (logger.isTraceEnabled()) {
+            logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos, DataManager.DATA_LENGTH_FIELD_SIZE +
+                                                                                 length);
         }
+        return new Position(lastDataFileNumber, (int) dataPos);
     }
 
     protected byte[] toByteArray(String key, V v) throws IllegalAccessException, InvocationTargetException,

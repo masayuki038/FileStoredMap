@@ -30,8 +30,12 @@ public class FileStoredMap<V> implements Map<String, V> {
         if (logger.isTraceEnabled()) {
             logger.trace("clear, ");
         }
-        store.clear();
-        initializeDirectory();
+        try {
+            store.clear();
+            initializeDirectory();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean containsKey(Object key) {
@@ -50,7 +54,11 @@ public class FileStoredMap<V> implements Map<String, V> {
         if (logger.isTraceEnabled()) {
             logger.trace("get, key:{}", key);
         }
-        return store.get(key.toString());
+        try {
+            return store.get(key.toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean isEmpty() {
@@ -68,21 +76,33 @@ public class FileStoredMap<V> implements Map<String, V> {
         if (logger.isTraceEnabled()) {
             logger.trace("isEmpty, ");
         }
-        return store.keySet();
+        try {
+            return store.keySet();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public V remove(Object key) {
         if (logger.isTraceEnabled()) {
             logger.trace("remove, key:{}", key);
         }
-        return store.remove(key.toString());
+        try {
+            return store.remove(key.toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public V put(String key, V value) {
         if (logger.isTraceEnabled()) {
             logger.trace("put, key:{}, value:{}", key, value);
         }
-        return store.put(key, value);
+        try {
+            return store.put(key, value);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void putAll(Map<? extends String, ? extends V> map) {

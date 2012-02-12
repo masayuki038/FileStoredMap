@@ -6,16 +6,16 @@ import java.util.Set;
 
 public interface Store<V> extends Closeable {
 
-    V get(String key);
+    V get(String key) throws IOException;
 
-    V put(String key, V v);
+    V put(String key, V v) throws IOException;
 
-    V remove(String key);
+    V remove(String key) throws IOException;
 
-    void clear();
+    void clear() throws IOException;
 
     int size() throws IOException;
 
-    Set<String> keySet();
+    Set<String> keySet() throws IOException;
 
 }

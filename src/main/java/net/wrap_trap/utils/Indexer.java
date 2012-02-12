@@ -58,7 +58,7 @@ public class Indexer implements Closeable {
         return new Position(idx, pos);
     }
 
-    public RandomAccessFile getIndexFile(byte indexFileNumber) throws IOException {
+    private RandomAccessFile getIndexFile(byte indexFileNumber) throws IOException {
         Preconditions.checkArgument(indexFileNumber <= MAX_NUMBER_OF_INDEX_FILES);
         int idx = indexFileNumber - 1;
         if (indexFiles[idx] != null)
@@ -96,7 +96,15 @@ public class Indexer implements Closeable {
         indexFile.setLength(HEADER_SIZE + (INDEX_SIZE_PER_RECORD * this.bucketSize));
     }
 
-    public Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
+    public Position getDataPosition(String key) throws IOException {
+        return getDataPosition(getIndexRef(key));
+    }
+
+    public Position getDataPosition(Position indexRef) throws IOException {
+        return getDataPosition(getIndexFile((byte) 1), indexRef);
+    }
+
+    protected Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
         int pos = indexRef.getPointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD)
             return null;
@@ -118,12 +126,16 @@ public class Indexer implements Closeable {
         return (fileNumber > 0);
     }
 
-    public void updateIndex(RandomAccessFile indexFile, int indexPos, int dataPos, byte dataFileNumber)
-            throws IOException {
+    public void updateIndex(Position indexRef, Position dataRef) throws IOException {
+        int indexPos = indexRef.getPointer();
+        int dataPos = dataRef.getPointer();
+        byte dataFileNumber = dataRef.getFileNumber();
+
         if (logger.isTraceEnabled()) {
             logger.trace("updateIndex, indexPos:{}, dataPos:{}, dataFileNumber:{}", new Object[] { indexPos, dataPos,
                                                                                                   dataFileNumber });
         }
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
         indexFile.seek(indexPos);
         indexFile.writeInt(dataPos);
         indexFile.writeByte(dataFileNumber);
@@ -133,7 +145,10 @@ public class Indexer implements Closeable {
         }
     }
 
-    public boolean indexUpdatable(RandomAccessFile indexFile) throws IOException {
+    public boolean indexUpdatable(Position indexRef) throws IOException {
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        indexFile.seek(indexRef.getPointer());
+
         boolean indexWritable = false;
         long pos = indexFile.getFilePointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
@@ -155,10 +170,12 @@ public class Indexer implements Closeable {
         }
     }
 
-    public void clearIndex(RandomAccessFile indexFile, int pos) throws IOException {
+    public void clearIndex(Position indexRef) throws IOException {
+        int pos = indexRef.getPointer();
         if (logger.isTraceEnabled()) {
-            logger.trace("clearIndex, indexFile:{}, pos:{}", indexFile, pos);
+            logger.trace("clearIndex, pos:{}", pos);
         }
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
         indexFile.seek(pos);
         indexFile.writeInt(0);
         indexFile.writeByte(0);
@@ -188,11 +205,23 @@ public class Indexer implements Closeable {
         return indexFile.readInt();
     }
 
-    public void seekIndexHead(RandomAccessFile indexFile) throws IOException {
+    public void seekIndexHead() throws IOException {
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
         indexFile.seek(HEADER_SIZE);
     }
 
-    public boolean hasNext(RandomAccessFile indexFile) throws IOException {
+    public boolean hasNext() throws IOException {
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
         return (indexFile.getFilePointer() < (HEADER_SIZE + (bucketSize * INDEX_SIZE_PER_RECORD)));
+    }
+
+    public Position read() throws IOException {
+        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        int pos = indexFile.readInt();
+        byte fileNumber = indexFile.readByte();
+        if (fileNumber > 0) {
+            return new Position(fileNumber, pos);
+        }
+        return null;
     }
 }
