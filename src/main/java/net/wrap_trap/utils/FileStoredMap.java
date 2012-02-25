@@ -26,6 +26,20 @@ public class FileStoredMap<V> implements Map<String, V> {
         store = new BsonStore<V>(dirPath, bucketSize);
     }
 
+    public void putAll(Map<? extends String, ? extends V> map) {
+        for (Map.Entry<? extends String, ? extends V> e : map.entrySet()) {
+            put(e.getKey(), e.getValue());
+        }
+    }
+
+    public boolean containsValue(Object value) {
+        throw new UnsupportedOperationException();
+    }
+
+    public Collection<V> values() {
+        throw new UnsupportedOperationException();
+    }
+
     public void clear() {
         if (logger.isTraceEnabled()) {
             logger.trace("clear, ");
@@ -36,10 +50,6 @@ public class FileStoredMap<V> implements Map<String, V> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public boolean containsValue(Object value) {
-        throw new UnsupportedOperationException();
     }
 
     public boolean containsKey(Object key) {
@@ -119,10 +129,6 @@ public class FileStoredMap<V> implements Map<String, V> {
         }
     }
 
-    public void putAll(Map<? extends String, ? extends V> map) {
-        throw new UnsupportedOperationException();
-    }
-
     public int size() {
         if (logger.isTraceEnabled()) {
             logger.trace("size, ");
@@ -132,10 +138,6 @@ public class FileStoredMap<V> implements Map<String, V> {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-    }
-
-    public Collection<V> values() {
-        throw new UnsupportedOperationException();
     }
 
     public void close() throws IOException {

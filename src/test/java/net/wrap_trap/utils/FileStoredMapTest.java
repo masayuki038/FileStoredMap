@@ -254,7 +254,7 @@ public class FileStoredMapTest {
         expected.add("emp2");
         expected.add("emp3");
         try {
-            map = new FileStoredMap<Employee>("tmp/keyset", 2);
+            map = new FileStoredMap<Employee>("tmp/testContainsKey", 2);
             map.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
             map.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
             map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
@@ -270,4 +270,34 @@ public class FileStoredMapTest {
             }
         }
     }
+
+    @Test
+    public void testPutAll() throws IOException {
+        TestUtils.deleteFiles("tmp/testPutAll");
+        FileStoredMap<Employee> map = null;
+        Set<String> expected = new HashSet<String>();
+        expected.add("emp1");
+        expected.add("emp2");
+        expected.add("emp3");
+
+        Map<String, Employee> container = new HashMap<String, Employee>();
+        container.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
+        container.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
+
+        try {
+            map = new FileStoredMap<Employee>("tmp/testContainsKey", 2);
+            map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
+            map.putAll(container);
+            for (String key : expected) {
+                assertThat(map.containsKey(key), is(true));
+                assertThat(map.remove(key), is(notNullValue()));
+            }
+            assertThat(map.isEmpty(), is(true));
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
+
 }
