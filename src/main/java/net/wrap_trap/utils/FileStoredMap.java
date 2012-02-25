@@ -32,11 +32,19 @@ public class FileStoredMap<V> implements Map<String, V> {
         }
     }
 
-    public boolean containsValue(Object value) {
-        throw new UnsupportedOperationException();
+    public Collection<V> values() {
+        if (logger.isTraceEnabled()) {
+            logger.trace("values, ");
+        }
+        try {
+            return store.values();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
-    public Collection<V> values() {
+    public boolean containsValue(Object value) {
         throw new UnsupportedOperationException();
     }
 

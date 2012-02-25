@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -196,6 +197,50 @@ public class BsonStore<V> implements Store<V> {
                                     throw new UnsupportedOperationException();
                                 }
                             };
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                };
+            }
+
+            @Override
+            public int size() {
+                try {
+                    return indexer.getEntryCount();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        };
+    }
+
+    @Override
+    public Collection<V> values() throws IOException {
+        return createValuesIterator();
+    }
+
+    protected Collection<V> createValuesIterator() throws IOException {
+        final Iterator<String> keyIterator = keySet().iterator();
+
+        return new LazySet<V>() {
+            @Override
+            public Iterator<V> iterator() {
+                return new LazyIterator<V>() {
+
+                    @Override
+                    public boolean hasNext() {
+                        return keyIterator.hasNext();
+                    }
+
+                    @Override
+                    public V next() {
+                        Preconditions.checkState(hasNext());
+                        try {
+                            final String key = keyIterator.next();
+                            final V v = get(key);
+                            Preconditions.checkNotNull(v);
+                            return v;
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }

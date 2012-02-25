@@ -7,9 +7,12 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -285,7 +288,7 @@ public class FileStoredMapTest {
         container.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
 
         try {
-            map = new FileStoredMap<Employee>("tmp/testContainsKey", 2);
+            map = new FileStoredMap<Employee>("tmp/testPutAll", 2);
             map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
             map.putAll(container);
             for (String key : expected) {
@@ -300,4 +303,41 @@ public class FileStoredMapTest {
         }
     }
 
+    @Test
+    public void testValues() throws IOException {
+        TestUtils.deleteFiles("tmp/values");
+        FileStoredMap<Employee> map = null;
+
+        Employee emp1 = TestUtils.createEmployee("hoge", 256, new Date());
+        Employee emp2 = TestUtils.createEmployee("foo", 128, new Date());
+        Employee emp3 = TestUtils.createEmployee("bar", 64, new Date());
+
+        Set<Employee> expected = new HashSet<Employee>();
+        expected.add(emp1);
+        expected.add(emp2);
+        expected.add(emp3);
+        try {
+            map = new FileStoredMap<Employee>("tmp/values", 2);
+            map.put("emp1", emp1);
+            map.put("emp2", emp2);
+            map.put("emp3", emp3);
+
+            for (Employee emp : map.values()) {
+                boolean found = false;
+                for (Employee target : expected) {
+                    if (target.getName().equals(emp.getName())) {
+                        TestUtils.assertEmployeeEquivalent(target, emp);
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    Assert.fail(String.format("%s was not found in expected set.", emp.getName()));
+                }
+            }
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+    }
 }
