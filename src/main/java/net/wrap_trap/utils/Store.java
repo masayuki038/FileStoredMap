@@ -20,4 +20,6 @@ public interface Store<V> extends Closeable {
 
     Set<java.util.Map.Entry<String, V>> entrySet() throws IOException;
 
+    boolean containsKey(Object key) throws IOException;
+
 }

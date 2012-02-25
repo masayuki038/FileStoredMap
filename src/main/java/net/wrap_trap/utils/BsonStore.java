@@ -294,4 +294,10 @@ public class BsonStore<V> implements Store<V> {
     public int size() throws IOException {
         return indexer.getEntryCount();
     }
+
+    @Override
+    public boolean containsKey(Object key) throws FileNotFoundException, IOException {
+        BSONObject bsonObject = readFrom(key.toString());
+        return (bsonObject != null);
+    }
 }

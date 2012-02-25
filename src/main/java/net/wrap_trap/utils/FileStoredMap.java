@@ -38,12 +38,19 @@ public class FileStoredMap<V> implements Map<String, V> {
         }
     }
 
-    public boolean containsKey(Object key) {
+    public boolean containsValue(Object value) {
         throw new UnsupportedOperationException();
     }
 
-    public boolean containsValue(Object value) {
-        throw new UnsupportedOperationException();
+    public boolean containsKey(Object key) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("containsKey, key:{}");
+        }
+        try {
+            return store.containsKey(key);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Set<java.util.Map.Entry<String, V>> entrySet() {

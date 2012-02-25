@@ -7,9 +7,7 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -248,30 +246,24 @@ public class FileStoredMapTest {
     }
 
     @Test
-    public void testEntrySet() throws IOException {
-        TestUtils.deleteFiles("tmp/entrySet");
+    public void testContainsKey() throws IOException {
+        TestUtils.deleteFiles("tmp/testContainsKey");
         FileStoredMap<Employee> map = null;
-
-        Employee emp1 = TestUtils.createEmployee("hoge", 256, new Date());
-        Employee emp2 = TestUtils.createEmployee("foo", 128, new Date());
-        Employee emp3 = TestUtils.createEmployee("bar", 64, new Date());
-        Map<String, Employee> expectedMap = new HashMap<String, Employee>();
-        expectedMap.put("emp1", emp1);
-        expectedMap.put("emp2", emp2);
-        expectedMap.put("emp3", emp3);
-
+        Set<String> expected = new HashSet<String>();
+        expected.add("emp1");
+        expected.add("emp2");
+        expected.add("emp3");
         try {
-            map = new FileStoredMap<Employee>("tmp/entrySet", 2);
-            map.put("emp1", emp1);
-            map.put("emp2", emp2);
-            map.put("emp3", emp3);
+            map = new FileStoredMap<Employee>("tmp/keyset", 2);
+            map.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
+            map.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
+            map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
 
-            for (Map.Entry<String, Employee> entry : map.entrySet()) {
-                Employee expected = expectedMap.remove(entry.getKey());
-                assertThat(expected, is(notNullValue()));
-                TestUtils.assertEmployeeEquivalent(expected, entry.getValue());
+            for (String key : expected) {
+                assertThat(map.containsKey(key), is(true));
+                assertThat(map.remove(key), is(notNullValue()));
             }
-            assertThat(expectedMap.isEmpty(), is(true));
+            assertThat(map.isEmpty(), is(true));
         } finally {
             if (map != null) {
                 map.close();
