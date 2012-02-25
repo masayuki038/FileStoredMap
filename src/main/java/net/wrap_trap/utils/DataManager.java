@@ -142,6 +142,19 @@ public class DataManager<V> implements Closeable {
         throw new IllegalArgumentException("Specified bsonObject is not key-value forms.");
     }
 
+    public Position writeTo(String key, V value) throws IOException {
+        try {
+            byte[] bytes = toByteArray(key, value);
+            return writeTo(bytes);
+        } catch (IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        } catch (InvocationTargetException ex) {
+            throw new RuntimeException(ex);
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     protected String getDataFilePath(byte fileNumber) {
         return dirPath + File.separator + Integer.toString(fileNumber) + DATA_FILE_SUFFIX;
     }
@@ -155,19 +168,6 @@ public class DataManager<V> implements Closeable {
         RandomAccessFile dataFile = new RandomAccessFile(dataFilePath, "rw");
         dataFiles[idx] = dataFile;
         return dataFile;
-    }
-
-    public Position writeTo(String key, V value) throws IOException {
-        try {
-            byte[] bytes = toByteArray(key, value);
-            return writeTo(bytes);
-        } catch (IllegalAccessException ex) {
-            throw new RuntimeException(ex);
-        } catch (InvocationTargetException ex) {
-            throw new RuntimeException(ex);
-        } catch (NoSuchMethodException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     protected Position writeTo(byte[] bytes) throws IOException {
@@ -237,5 +237,4 @@ public class DataManager<V> implements Closeable {
                 return --i;
         }
     }
-
 }

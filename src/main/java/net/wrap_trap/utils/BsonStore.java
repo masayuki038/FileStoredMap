@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -138,6 +140,66 @@ public class BsonStore<V> implements Store<V> {
                         return null;
                     }
 
+                };
+            }
+
+            @Override
+            public int size() {
+                try {
+                    return indexer.getEntryCount();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        };
+    }
+
+    @Override
+    public Set<java.util.Map.Entry<String, V>> entrySet() throws IOException {
+        return createEntrySetIterator();
+    }
+
+    private Set<Entry<String, V>> createEntrySetIterator() throws IOException {
+        final Iterator<String> keyIterator = keySet().iterator();
+
+        return new LazySet<Entry<String, V>>() {
+            @Override
+            public Iterator<Entry<String, V>> iterator() {
+                return new LazyIterator<Entry<String, V>>() {
+
+                    @Override
+                    public boolean hasNext() {
+                        return keyIterator.hasNext();
+                    }
+
+                    @Override
+                    public Entry<String, V> next() {
+                        Preconditions.checkState(hasNext());
+                        try {
+                            final String key = keyIterator.next();
+                            final V v = get(key);
+                            Preconditions.checkNotNull(v);
+                            return new Map.Entry<String, V>() {
+
+                                @Override
+                                public String getKey() {
+                                    return key;
+                                }
+
+                                @Override
+                                public V getValue() {
+                                    return v;
+                                }
+
+                                @Override
+                                public V setValue(V value) {
+                                    throw new UnsupportedOperationException();
+                                }
+                            };
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                 };
             }
 

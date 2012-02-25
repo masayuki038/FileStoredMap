@@ -47,7 +47,14 @@ public class FileStoredMap<V> implements Map<String, V> {
     }
 
     public Set<java.util.Map.Entry<String, V>> entrySet() {
-        throw new UnsupportedOperationException();
+        if (logger.isTraceEnabled()) {
+            logger.trace("entrySet, ");
+        }
+        try {
+            return store.entrySet();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public V get(Object key) {
