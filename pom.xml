@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>net.wrap_trap.utils</groupId>
-  <artifactId>FileStoredHashMap</artifactId>
+  <groupId>net.wrap_trap.collections</groupId>
+  <artifactId>FileStoredMap</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>FileStoredHashMap</name>
+  <name>FileStoredMap</name>
   
   <repositories>
     <repository>
@@ -72,4 +72,20 @@
   		<version>1.0.0</version>
   	</dependency>
   </dependencies>
+  
+   <distributionManagement>
+    <repository>
+      <uniqueVersion>false</uniqueVersion>
+      <id>wrap-trap.net/maven2</id>
+      <name>wrap-trap.net Maven Repository</name>
+      <url>scp://wrap-trap.net:3843/var/www/maven2</url>
+    </repository>
+    <snapshotRepository>
+      <uniqueVersion>true</uniqueVersion>
+      <id>wrap-trap.net/maven2/snapshot</id>
+      <name>wrap-trap.net Maven Snapshot Repository</name>
+      <url>scp://wrap-trap.net:3843/var/www/maven2/snapshot</url>
+    </snapshotRepository>
+  </distributionManagement>
+  
 </project>
