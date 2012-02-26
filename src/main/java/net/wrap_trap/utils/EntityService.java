@@ -32,7 +32,7 @@ import com.google.common.io.Closeables;
  * d. a file number of next data.[byte]
  * </pre>
  */
-public class DataManager<V> implements Closeable {
+public class EntityService<V> implements Closeable {
 
     private static final String DATA_FILE_SUFFIX = ".dat";
 
@@ -40,7 +40,7 @@ public class DataManager<V> implements Closeable {
     public static final int DATA_LENGTH_FIELD_SIZE = 4; // (a.) size of integer.
     public static final int NEXT_DATA_POINTER_SIZE = 5;
 
-    protected static Logger logger = LoggerFactory.getLogger(DataManager.class);
+    protected static Logger logger = LoggerFactory.getLogger(EntityService.class);
 
     private RandomAccessFile[] dataFiles = new RandomAccessFile[MAX_NUMBER_OF_DATA_FILES];
 
@@ -49,7 +49,7 @@ public class DataManager<V> implements Closeable {
     private BSONObjectMapper objectMapper = new BSONObjectMapper();
     private String dirPath;
 
-    public DataManager(String path) {
+    public EntityService(String path) {
         this.dirPath = path;
     }
 
@@ -67,8 +67,8 @@ public class DataManager<V> implements Closeable {
         RandomAccessFile dataFile = getDataFile(lastDataRef.getCurrentFileNumber());
         dataFile.seek(lastDataRef.getCurrentPointer());
         int length = dataFile.readInt();
-        dataFile.seek(lastDataRef.getCurrentPointer() + DataManager.DATA_LENGTH_FIELD_SIZE + length -
-                      DataManager.NEXT_DATA_POINTER_SIZE);
+        dataFile.seek(lastDataRef.getCurrentPointer() + EntityService.DATA_LENGTH_FIELD_SIZE + length -
+                      EntityService.NEXT_DATA_POINTER_SIZE);
         dataFile.writeInt(dataRef.getNextPointer());
         dataFile.writeByte(dataRef.getNextFileNumber());
     }
@@ -81,11 +81,11 @@ public class DataManager<V> implements Closeable {
             RandomAccessFile f = getDataFile(dataFileNumber);
             f.seek(dataPos);
             int dataSize = f.readInt();
-            f.seek(dataPos + DataManager.DATA_LENGTH_FIELD_SIZE + dataSize - DataManager.NEXT_DATA_POINTER_SIZE);
+            f.seek(dataPos + EntityService.DATA_LENGTH_FIELD_SIZE + dataSize - EntityService.NEXT_DATA_POINTER_SIZE);
             int nextDataPos = f.readInt();
             byte nextFileNumber = f.readByte();
             if (nextDataPos == 0 && nextFileNumber == 0) {
-                f.seek(dataPos + DataManager.DATA_LENGTH_FIELD_SIZE + dataSize - DataManager.NEXT_DATA_POINTER_SIZE);
+                f.seek(dataPos + EntityService.DATA_LENGTH_FIELD_SIZE + dataSize - EntityService.NEXT_DATA_POINTER_SIZE);
                 f.writeInt(nextDataRef.getPointer());
                 f.writeByte(nextDataRef.getFileNumber());
                 if (logger.isTraceEnabled()) {
@@ -124,7 +124,7 @@ public class DataManager<V> implements Closeable {
         RandomAccessFile dataFile = getDataFile(fileNumber);
         dataFile.seek(dataPos);
         int dataLength = dataFile.readInt();
-        int bodySize = dataLength - DataManager.NEXT_DATA_POINTER_SIZE;
+        int bodySize = dataLength - EntityService.NEXT_DATA_POINTER_SIZE;
         byte[] buf = new byte[bodySize];
         if (dataFile.read(buf) < bodySize)
             throw new RuntimeException("error");
@@ -180,14 +180,14 @@ public class DataManager<V> implements Closeable {
 
         long dataPos = dataFile.length();
         dataFile.seek(dataPos);
-        int length = bytes.length + DataManager.NEXT_DATA_POINTER_SIZE;
+        int length = bytes.length + EntityService.NEXT_DATA_POINTER_SIZE;
         dataFile.writeInt(length);
         dataFile.write(bytes);
         dataFile.writeInt(0); // the file position of next data.
         dataFile.writeByte(0); // the file position of next data.
 
         if (logger.isTraceEnabled()) {
-            logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos, DataManager.DATA_LENGTH_FIELD_SIZE +
+            logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos, EntityService.DATA_LENGTH_FIELD_SIZE +
                                                                                  length);
         }
         return new Position(lastDataFileNumber, (int) dataPos);

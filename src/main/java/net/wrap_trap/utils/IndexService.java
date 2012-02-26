@@ -22,7 +22,7 @@ import com.google.common.io.Closeables;
  * b. data file number(1-2).[byte]
  * </pre>
  */
-public class Indexer implements Closeable {
+public class IndexService implements Closeable {
 
     private static final int VERSION = 1;
 
@@ -33,7 +33,7 @@ public class Indexer implements Closeable {
 
     private static final int HEADER_SIZE = 128;
 
-    protected static Logger logger = LoggerFactory.getLogger(Indexer.class);
+    protected static Logger logger = LoggerFactory.getLogger(IndexService.class);
 
     private RandomAccessFile[] indexFiles = new RandomAccessFile[MAX_NUMBER_OF_INDEX_FILES];
 
@@ -41,11 +41,11 @@ public class Indexer implements Closeable {
     private int bucketSize;
     private int currentVersion;
 
-    public Indexer(String path) {
+    public IndexService(String path) {
         this(path, 4096);
     }
 
-    public Indexer(String path, int bucketSize) {
+    public IndexService(String path, int bucketSize) {
         super();
         this.dirPath = path;
         this.bucketSize = bucketSize;

@@ -22,8 +22,8 @@ public class BsonStore<V> implements Store<V> {
 
     protected static Logger logger = LoggerFactory.getLogger(BsonStore.class);
 
-    private Indexer indexer;
-    private DataManager<V> dataManager;
+    private IndexService indexService;
+    private EntityService<V> entityService;
     private String dirPath;
     private int bucketSize;
 
@@ -42,7 +42,7 @@ public class BsonStore<V> implements Store<V> {
             BSONObject bsonObject = readFrom(key);
             if (bsonObject == null)
                 return null;
-            return dataManager.rebuildValue(bsonObject);
+            return entityService.rebuildValue(bsonObject);
         } catch (FileNotFoundException ex) {
             return null;
         }
@@ -58,10 +58,10 @@ public class BsonStore<V> implements Store<V> {
             remove(key);
         }
         synchronized (this) {
-            Position indexRef = indexer.getIndexRef(key);
-            Position dataRef = dataManager.writeTo(key, value);
+            Position indexRef = indexService.getIndexRef(key);
+            Position dataRef = entityService.writeTo(key, value);
             updateIndex(indexRef, dataRef);
-            indexer.incrementEntryCount();
+            indexService.incrementEntryCount();
         }
         return pre;
     }
@@ -72,13 +72,13 @@ public class BsonStore<V> implements Store<V> {
             logger.trace("remove, key:{}", key);
         }
         synchronized (this) {
-            Position indexRef = indexer.getIndexRef(key);
-            Position dataRef = indexer.getDataPosition(indexRef);
+            Position indexRef = indexService.getIndexRef(key);
+            Position dataRef = indexService.getDataPosition(indexRef);
             if (dataRef == null)
                 return null;
             BSONObject bsonObject = removeBSON(key, indexRef, dataRef, new ArrayList<DataBlock>());
-            indexer.decrementEntryCount();
-            return dataManager.rebuildValue(bsonObject);
+            indexService.decrementEntryCount();
+            return entityService.rebuildValue(bsonObject);
         }
     }
 
@@ -98,7 +98,7 @@ public class BsonStore<V> implements Store<V> {
 
                     {
                         try {
-                            indexer.seekIndexHead();
+                            indexService.seekIndexHead();
                             dataRef = getNextPosition();
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -115,14 +115,14 @@ public class BsonStore<V> implements Store<V> {
                         Preconditions.checkState(hasNext());
                         try {
                             if (this.dataBlock == null) {
-                                dataBlock = dataManager.getDataBlock(dataRef);
+                                dataBlock = entityService.getDataBlock(dataRef);
                             }
-                            String key = dataManager.getKey(dataBlock);
+                            String key = entityService.getKey(dataBlock);
                             if (dataBlock.getNextFileNumber() == 0) {
                                 dataBlock = null;
                                 dataRef = getNextPosition();
                             } else {
-                                dataBlock = dataManager.getDataBlock(new Position(dataBlock.getNextFileNumber(),
+                                dataBlock = entityService.getDataBlock(new Position(dataBlock.getNextFileNumber(),
                                                                                   dataBlock.getNextPointer()));
                             }
                             return key;
@@ -132,8 +132,8 @@ public class BsonStore<V> implements Store<V> {
                     }
 
                     protected Position getNextPosition() throws IOException {
-                        while (indexer.hasNext()) {
-                            Position indexRef = indexer.read();
+                        while (indexService.hasNext()) {
+                            Position indexRef = indexService.read();
                             if (indexRef != null) {
                                 return indexRef;
                             }
@@ -147,7 +147,7 @@ public class BsonStore<V> implements Store<V> {
             @Override
             public int size() {
                 try {
-                    return indexer.getEntryCount();
+                    return indexService.getEntryCount();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -207,7 +207,7 @@ public class BsonStore<V> implements Store<V> {
             @Override
             public int size() {
                 try {
-                    return indexer.getEntryCount();
+                    return indexService.getEntryCount();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -251,7 +251,7 @@ public class BsonStore<V> implements Store<V> {
             @Override
             public int size() {
                 try {
-                    return indexer.getEntryCount();
+                    return indexService.getEntryCount();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -268,13 +268,13 @@ public class BsonStore<V> implements Store<V> {
 
     @Override
     public void close() {
-        dataManager.close();
-        indexer.close();
+        entityService.close();
+        indexService.close();
     }
 
     protected void initialize() {
-        this.dataManager = new DataManager<V>(this.dirPath);
-        this.indexer = new Indexer(this.dirPath, this.bucketSize);
+        this.entityService = new EntityService<V>(this.dirPath);
+        this.indexService = new IndexService(this.dirPath, this.bucketSize);
     }
 
     protected void deleteDirectory() {
@@ -285,10 +285,10 @@ public class BsonStore<V> implements Store<V> {
     }
 
     protected BSONObject readFrom(String key) throws IOException, FileNotFoundException {
-        Position dataRef = indexer.getDataPosition(key);
+        Position dataRef = indexService.getDataPosition(key);
         if (dataRef == null)
             return null;
-        return dataManager.readFrom(key, dataRef);
+        return entityService.readFrom(key, dataRef);
     }
 
     protected BSONObject removeBSON(String key, Position indexRef, Position dataRef, List<DataBlock> dataRefList)
@@ -298,17 +298,17 @@ public class BsonStore<V> implements Store<V> {
                                                                                                      indexRef,
                                                                                                      dataRefList });
         }
-        DataBlock dataBlock = dataManager.getDataBlock(dataRef);
-        if (key.equals(dataManager.getKey(dataBlock))) {
+        DataBlock dataBlock = entityService.getDataBlock(dataRef);
+        if (key.equals(entityService.getKey(dataBlock))) {
             if ((dataBlock.getNextPointer() == 0) && (dataBlock.getNextFileNumber() == 0) && (dataRefList.size() == 0)) {
                 // remain this one only
-                indexer.clearIndex(indexRef);
+                indexService.clearIndex(indexRef);
             } else if (dataRefList.size() > 0) {
                 DataBlock lastDataRef = dataRefList.get(dataRefList.size() - 1);
-                dataManager.updateNextRef(dataBlock, lastDataRef);
+                entityService.updateNextRef(dataBlock, lastDataRef);
             } else {
                 // remove at the first element.
-                indexer.updateIndex(indexRef, dataRef);
+                indexService.updateIndex(indexRef, dataRef);
             }
             return dataBlock.getBsonObject();
         } else {
@@ -319,11 +319,11 @@ public class BsonStore<V> implements Store<V> {
     }
 
     public void updateIndex(Position indexRef, Position nextDataRef) throws IOException {
-        if (indexer.indexUpdatable(indexRef)) {
-            indexer.updateIndex(indexRef, nextDataRef);
+        if (indexService.indexUpdatable(indexRef)) {
+            indexService.updateIndex(indexRef, nextDataRef);
         } else {
-            Position rootDataRef = indexer.getDataPosition(indexRef);
-            dataManager.updateNextRef(rootDataRef, nextDataRef);
+            Position rootDataRef = indexService.getDataPosition(indexRef);
+            entityService.updateNextRef(rootDataRef, nextDataRef);
         }
     }
 
@@ -337,7 +337,7 @@ public class BsonStore<V> implements Store<V> {
 
     @Override
     public int size() throws IOException {
-        return indexer.getEntryCount();
+        return indexService.getEntryCount();
     }
 
     @Override
