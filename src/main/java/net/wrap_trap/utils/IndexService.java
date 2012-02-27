@@ -8,7 +8,6 @@ import java.io.RandomAccessFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 
 /**
@@ -28,14 +27,13 @@ public class IndexService implements Closeable {
 
     private static final String INDEX_FILE_SUFFIX = ".idx";
     private static final int INDEX_SIZE_PER_RECORD = 5;
-    private static final int MAX_NUMBER_OF_INDEX_FILES = 10; // Integer.MAX_VALUE(2^31)/INDEX_SIZE_PER_FILE*2(negative/positive areas of integer)
     private static final int HEADER_ENTRYCOUNT_OFFSET = 8;
 
     private static final int HEADER_SIZE = 128;
 
     protected static Logger logger = LoggerFactory.getLogger(IndexService.class);
 
-    private RandomAccessFile[] indexFiles = new RandomAccessFile[MAX_NUMBER_OF_INDEX_FILES];
+    private RandomAccessFile indexFile;
 
     private String dirPath;
     private int bucketSize;
@@ -58,23 +56,22 @@ public class IndexService implements Closeable {
         return new Position(idx, pos);
     }
 
-    private RandomAccessFile getIndexFile(byte indexFileNumber) throws IOException {
-        Preconditions.checkArgument(indexFileNumber <= MAX_NUMBER_OF_INDEX_FILES);
-        int idx = indexFileNumber - 1;
-        if (indexFiles[idx] != null)
-            return indexFiles[idx];
-        String indexFilePath = dirPath + File.separator + Integer.toString(idx) + INDEX_FILE_SUFFIX;
+    protected RandomAccessFile getIndexFile() throws IOException {
+        if (indexFile != null) {
+            return indexFile;
+        }
+
+        String indexFilePath = dirPath + File.separator + "1" + INDEX_FILE_SUFFIX;
 
         File file = new File(indexFilePath);
         boolean isNew = !file.exists();
 
-        RandomAccessFile indexFile = new RandomAccessFile(file, "rw");
+        indexFile = new RandomAccessFile(file, "rw");
         if (isNew) {
             initializeIndexfile(indexFile);
         } else {
             loadHeader(indexFile);
         }
-        indexFiles[idx] = indexFile;
         return indexFile;
     }
 
@@ -101,7 +98,7 @@ public class IndexService implements Closeable {
     }
 
     public Position getDataPosition(Position indexRef) throws IOException {
-        return getDataPosition(getIndexFile((byte) 1), indexRef);
+        return getDataPosition(getIndexFile(), indexRef);
     }
 
     protected Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
@@ -135,7 +132,7 @@ public class IndexService implements Closeable {
             logger.trace("updateIndex, indexPos:{}, dataPos:{}, dataFileNumber:{}", new Object[] { indexPos, dataPos,
                                                                                                   dataFileNumber });
         }
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(indexPos);
         indexFile.writeInt(dataPos);
         indexFile.writeByte(dataFileNumber);
@@ -146,7 +143,7 @@ public class IndexService implements Closeable {
     }
 
     public boolean indexUpdatable(Position indexRef) throws IOException {
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(indexRef.getPointer());
 
         boolean indexWritable = false;
@@ -165,9 +162,7 @@ public class IndexService implements Closeable {
 
     @Override
     public void close() {
-        for (RandomAccessFile file : indexFiles) {
-            Closeables.closeQuietly(file);
-        }
+        Closeables.closeQuietly(indexFile);
     }
 
     public void clearIndex(Position indexRef) throws IOException {
@@ -175,7 +170,7 @@ public class IndexService implements Closeable {
         if (logger.isTraceEnabled()) {
             logger.trace("clearIndex, pos:{}", pos);
         }
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(pos);
         indexFile.writeInt(0);
         indexFile.writeByte(0);
@@ -187,36 +182,36 @@ public class IndexService implements Closeable {
 
     public void incrementEntryCount() throws IOException {
         int count = getEntryCount();
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
         indexFile.writeInt(count + 1);
     }
 
     public void decrementEntryCount() throws IOException {
         int count = getEntryCount();
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
         indexFile.writeInt(count - 1);
     }
 
     public int getEntryCount() throws IOException {
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(HEADER_ENTRYCOUNT_OFFSET);
         return indexFile.readInt();
     }
 
     public void seekIndexHead() throws IOException {
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(HEADER_SIZE);
     }
 
     public boolean hasNext() throws IOException {
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         return (indexFile.getFilePointer() < (HEADER_SIZE + (bucketSize * INDEX_SIZE_PER_RECORD)));
     }
 
     public Position read() throws IOException {
-        RandomAccessFile indexFile = getIndexFile((byte) 1);
+        RandomAccessFile indexFile = getIndexFile();
         int pos = indexFile.readInt();
         byte fileNumber = indexFile.readByte();
         if (fileNumber > 0) {
