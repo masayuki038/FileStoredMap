@@ -79,6 +79,7 @@ public class EntityService<V> implements Closeable {
 
         while (true) {
             RandomAccessFile f = getDataFile(dataFileNumber);
+            Preconditions.checkArgument((dataPos >= 0), "dataPos < 0 dataPos: %d", dataPos);
             f.seek(dataPos);
             int dataSize = f.readInt();
             f.seek(dataPos + EntityService.DATA_LENGTH_FIELD_SIZE + dataSize - EntityService.NEXT_DATA_POINTER_SIZE);
