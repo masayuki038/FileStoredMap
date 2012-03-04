@@ -51,9 +51,8 @@ public class IndexService implements Closeable {
 
     public Position getIndexRef(String key) {
         long hashCode = toUnsignedInt(key.hashCode());
-        byte idx = 1;
         int pos = (int) ((hashCode % bucketSize) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
-        return new Position(idx, pos);
+        return new Position((byte) 1, pos);
     }
 
     protected RandomAccessFile getIndexFile() throws IOException {
