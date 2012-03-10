@@ -10,9 +10,9 @@ import java.util.Set;
 
 import net.wrap_trap.monganez.BSONObjectMapper;
 
+import org.bson.BSONDecoder;
+import org.bson.BSONEncoder;
 import org.bson.BSONObject;
-import org.bson.BasicBSONDecoder;
-import org.bson.BasicBSONEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +44,8 @@ public class EntityService<V> implements Closeable {
 
     private RandomAccessFile[] dataFiles = new RandomAccessFile[MAX_NUMBER_OF_DATA_FILES];
 
-    private BasicBSONEncoder encoder = new BasicBSONEncoder();
-    private BasicBSONDecoder decoder = new BasicBSONDecoder();
+    private BSONEncoder encoder = new BSONEncoder();
+    private BSONDecoder decoder = new BSONDecoder();
     private BSONObjectMapper objectMapper = new BSONObjectMapper();
     private String dirPath;
 
