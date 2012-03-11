@@ -22,13 +22,13 @@ import com.google.common.io.Closeables;
 /**
  * <pre>
  *  structure of data
- * +--+--+--+--+--+--+--+--+--+--+--+--+--+
- * |     a.    |     b.    |     c.    |d.|  
- * +--+--+--+--+--+--+--+--+--+--+--+--+--+
+ * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ * |     a.    |     b.    |           c.          |d.|  
+ * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
  * 
  * a. a data length(from b. to d.)[integer]
  * b. data[byte[]]
- * c. a file position of next data.[integer]
+ * c. a file position of next data.[long]
  * d. a file number of next data.[byte]
  * </pre>
  */
@@ -38,7 +38,7 @@ public class EntityService<V> implements Closeable {
 
     private static final int MAX_NUMBER_OF_DATA_FILES = 2;
     public static final int DATA_LENGTH_FIELD_SIZE = 4; // (a.) size of integer.
-    public static final int NEXT_DATA_POINTER_SIZE = 5;
+    public static final int NEXT_DATA_POINTER_SIZE = 9;
 
     protected static Logger logger = LoggerFactory.getLogger(EntityService.class);
 
@@ -57,7 +57,7 @@ public class EntityService<V> implements Closeable {
         if (logger.isTraceEnabled()) {
             logger.trace("readFrom, key:{}, dataRef:{}", new Object[] { key, dataRef });
         }
-        if (dataRef.getPointer() == 0 && dataRef.getFileNumber() == 0)
+        if (dataRef.getPointer() == 0L && dataRef.getFileNumber() == 0)
             // index record is empty.(this record area has cleaned up.)
             return null;
         return readDataFile(key, dataRef);
@@ -69,12 +69,12 @@ public class EntityService<V> implements Closeable {
         int length = dataFile.readInt();
         dataFile.seek(lastDataRef.getCurrentPointer() + EntityService.DATA_LENGTH_FIELD_SIZE + length -
                       EntityService.NEXT_DATA_POINTER_SIZE);
-        dataFile.writeInt(dataRef.getNextPointer());
+        dataFile.writeLong(dataRef.getNextPointer());
         dataFile.writeByte(dataRef.getNextFileNumber());
     }
 
     public void updateNextRef(Position rootDataRef, Position nextDataRef) throws IOException {
-        int dataPos = rootDataRef.getPointer();
+        long dataPos = rootDataRef.getPointer();
         byte dataFileNumber = rootDataRef.getFileNumber();
 
         while (true) {
@@ -83,11 +83,11 @@ public class EntityService<V> implements Closeable {
             f.seek(dataPos);
             int dataSize = f.readInt();
             f.seek(dataPos + EntityService.DATA_LENGTH_FIELD_SIZE + dataSize - EntityService.NEXT_DATA_POINTER_SIZE);
-            int nextDataPos = f.readInt();
+            long nextDataPos = f.readLong();
             byte nextFileNumber = f.readByte();
             if (nextDataPos == 0 && nextFileNumber == 0) {
                 f.seek(dataPos + EntityService.DATA_LENGTH_FIELD_SIZE + dataSize - EntityService.NEXT_DATA_POINTER_SIZE);
-                f.writeInt(nextDataRef.getPointer());
+                f.writeLong(nextDataRef.getPointer());
                 f.writeByte(nextDataRef.getFileNumber());
                 if (logger.isTraceEnabled()) {
                     logger.trace("\tupdate to data file, dataPos:{}, nextDataPos:{}, nextDataFileNumber:{}",
@@ -120,7 +120,7 @@ public class EntityService<V> implements Closeable {
 
     public DataBlock getDataBlock(Position dataRef) throws IOException {
         byte fileNumber = dataRef.getFileNumber();
-        int dataPos = dataRef.getPointer();
+        long dataPos = dataRef.getPointer();
 
         RandomAccessFile dataFile = getDataFile(fileNumber);
         dataFile.seek(dataPos);
@@ -130,7 +130,7 @@ public class EntityService<V> implements Closeable {
         if (dataFile.read(buf) < bodySize)
             throw new RuntimeException("error");
         BSONObject bsonObject = decoder.readObject(buf);
-        int nextDataPos = dataFile.readInt();
+        long nextDataPos = dataFile.readLong();
         byte nextFileNumber = dataFile.readByte();
         return new DataBlock(bsonObject, dataPos, fileNumber, nextDataPos, nextFileNumber);
     }
@@ -184,14 +184,14 @@ public class EntityService<V> implements Closeable {
         int length = bytes.length + EntityService.NEXT_DATA_POINTER_SIZE;
         dataFile.writeInt(length);
         dataFile.write(bytes);
-        dataFile.writeInt(0); // the file position of next data.
+        dataFile.writeLong(0L); // the file position of next data.
         dataFile.writeByte(0); // the file position of next data.
 
         if (logger.isTraceEnabled()) {
             logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos, EntityService.DATA_LENGTH_FIELD_SIZE +
                                                                                  length);
         }
-        return new Position(lastDataFileNumber, (int) dataPos);
+        return new Position(lastDataFileNumber, dataPos);
     }
 
     protected byte[] toByteArray(String key, V v) throws IllegalAccessException, InvocationTargetException,

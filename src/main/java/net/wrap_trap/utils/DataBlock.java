@@ -5,12 +5,12 @@ import org.bson.BSONObject;
 public class DataBlock {
 
     private BSONObject bsonObject;
-    private int currentPointer;
+    private long currentPointer;
     private byte currentFileNumber;
-    private int nextPointer;
+    private long nextPointer;
     private byte nextFileNumber;
 
-    public DataBlock(BSONObject bsonObject, int currentPointer, byte currentFileNumber, int nextPointer,
+    public DataBlock(BSONObject bsonObject, long currentPointer, byte currentFileNumber, long nextPointer,
             byte nextFileNumber) {
         super();
         this.bsonObject = bsonObject;
@@ -24,7 +24,7 @@ public class DataBlock {
         return bsonObject;
     }
 
-    public int getCurrentPointer() {
+    public long getCurrentPointer() {
         return currentPointer;
     }
 
@@ -32,7 +32,7 @@ public class DataBlock {
         return currentFileNumber;
     }
 
-    public int getNextPointer() {
+    public long getNextPointer() {
         return nextPointer;
     }
 

@@ -3,9 +3,9 @@ package net.wrap_trap.utils;
 public class Position {
 
     private byte fileNumber;
-    private int pointer;
+    private long pointer;
 
-    public Position(byte fileNumber, int pointer) {
+    public Position(byte fileNumber, long pointer) {
         super();
         this.fileNumber = fileNumber;
         this.pointer = pointer;
@@ -15,7 +15,7 @@ public class Position {
         return fileNumber;
     }
 
-    public int getPointer() {
+    public long getPointer() {
         return pointer;
     }
 

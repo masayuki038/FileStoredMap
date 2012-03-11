@@ -13,11 +13,11 @@ import com.google.common.io.Closeables;
 /**
  * <pre>
  *  structure of index
- * +--+--+--+--+--+
- * |     a.    |b.|
- * +--+--+--+--+--+
+ * +--+--+--+--+--+--+--+--+--+
+ * |           a.          |b.|
+ * +--+-+--+--+--+---+--+--+--+
  * 
- * a. a offset of data file.[integer]
+ * a. a offset of data file.[long]
  * b. data file number(1-2).[byte]
  * </pre>
  */
@@ -26,7 +26,7 @@ public class IndexService implements Closeable {
     private static final int VERSION = 1;
 
     private static final String INDEX_FILE_SUFFIX = ".idx";
-    private static final int INDEX_SIZE_PER_RECORD = 5;
+    private static final int INDEX_SIZE_PER_RECORD = 9;
     private static final int HEADER_ENTRYCOUNT_OFFSET = 8;
 
     private static final int HEADER_SIZE = 128;
@@ -51,7 +51,7 @@ public class IndexService implements Closeable {
 
     public Position getIndexRef(String key) {
         long hashCode = toUnsignedInt(key.hashCode());
-        int pos = (int) ((hashCode % bucketSize) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
+        long pos = ((hashCode % bucketSize) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
         return new Position((byte) 1, pos);
     }
 
@@ -101,11 +101,11 @@ public class IndexService implements Closeable {
     }
 
     protected Position getDataPosition(RandomAccessFile indexFile, Position indexRef) throws IOException {
-        int pos = indexRef.getPointer();
+        long pos = indexRef.getPointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD)
             return null;
         indexFile.seek(pos);
-        int dataPos = indexFile.readInt();
+        long dataPos = indexFile.readLong();
         byte dataFileNumber = indexFile.readByte();
         if (dataFileNumber == 0) {
             return null;
@@ -114,7 +114,7 @@ public class IndexService implements Closeable {
     }
 
     public boolean containsKey(RandomAccessFile indexFile, Position indexRef) throws IOException {
-        int pos = indexRef.getPointer();
+        long pos = indexRef.getPointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD)
             return false;
         indexFile.seek(pos + 4/* size of dataPos */);
@@ -123,8 +123,8 @@ public class IndexService implements Closeable {
     }
 
     public void updateIndex(Position indexRef, Position dataRef) throws IOException {
-        int indexPos = indexRef.getPointer();
-        int dataPos = dataRef.getPointer();
+        long indexPos = indexRef.getPointer();
+        long dataPos = dataRef.getPointer();
         byte dataFileNumber = dataRef.getFileNumber();
 
         if (logger.isTraceEnabled()) {
@@ -133,7 +133,7 @@ public class IndexService implements Closeable {
         }
         RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(indexPos);
-        indexFile.writeInt(dataPos);
+        indexFile.writeLong(dataPos);
         indexFile.writeByte(dataFileNumber);
         if (logger.isTraceEnabled()) {
             logger.trace("\twrite to index file, indexPos:{}, dataPos:{}, dataFileNumber:{}",
@@ -150,7 +150,7 @@ public class IndexService implements Closeable {
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
             indexWritable = true;
         } else {
-            int dataRef = indexFile.readInt();
+            long dataRef = indexFile.readLong();
             byte dataFileNumber = indexFile.readByte();
             if ((dataRef == 0) && (dataFileNumber == 0)) {
                 indexWritable = true;
@@ -165,13 +165,13 @@ public class IndexService implements Closeable {
     }
 
     public void clearIndex(Position indexRef) throws IOException {
-        int pos = indexRef.getPointer();
+        long pos = indexRef.getPointer();
         if (logger.isTraceEnabled()) {
             logger.trace("clearIndex, pos:{}", pos);
         }
         RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(pos);
-        indexFile.writeInt(0);
+        indexFile.writeLong(0);
         indexFile.writeByte(0);
     }
 
@@ -211,7 +211,7 @@ public class IndexService implements Closeable {
 
     public Position read() throws IOException {
         RandomAccessFile indexFile = getIndexFile();
-        int pos = indexFile.readInt();
+        long pos = indexFile.readLong();
         byte fileNumber = indexFile.readByte();
         if (fileNumber > 0) {
             return new Position(fileNumber, pos);
