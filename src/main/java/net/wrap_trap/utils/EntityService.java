@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import net.wrap_trap.monganez.BSONObjectMapper;
@@ -36,13 +38,12 @@ public class EntityService<V> implements Closeable {
 
     private static final String DATA_FILE_SUFFIX = ".dat";
 
-    private static final int MAX_NUMBER_OF_DATA_FILES = 2;
     public static final int DATA_LENGTH_FIELD_SIZE = 4; // (a.) size of integer.
     public static final int NEXT_DATA_POINTER_SIZE = 9;
 
     protected static Logger logger = LoggerFactory.getLogger(EntityService.class);
 
-    private RandomAccessFile[] dataFiles = new RandomAccessFile[MAX_NUMBER_OF_DATA_FILES];
+    private List<RandomAccessFile> dataFileList = new ArrayList<RandomAccessFile>();
 
     private BSONEncoder encoder = new BSONEncoder();
     private BSONDecoder decoder = new BSONDecoder();
@@ -103,7 +104,7 @@ public class EntityService<V> implements Closeable {
 
     @Override
     public void close() {
-        for (RandomAccessFile file : dataFiles) {
+        for (RandomAccessFile file : dataFileList) {
             Closeables.closeQuietly(file);
         }
     }
@@ -161,13 +162,13 @@ public class EntityService<V> implements Closeable {
     }
 
     protected RandomAccessFile getDataFile(byte dataFileNumber) throws FileNotFoundException {
-        Preconditions.checkArgument(dataFileNumber <= MAX_NUMBER_OF_DATA_FILES);
+        //Preconditions.checkArgument();
         int idx = dataFileNumber - 1;
-        if (dataFiles[idx] != null)
-            return dataFiles[idx];
+        if (dataFileNumber <= dataFileList.size())
+            return dataFileList.get(idx);
         String dataFilePath = getDataFilePath(dataFileNumber);
         RandomAccessFile dataFile = new RandomAccessFile(dataFilePath, "rw");
-        dataFiles[idx] = dataFile;
+        dataFileList.add(idx, dataFile);
         return dataFile;
     }
 
@@ -231,11 +232,14 @@ public class EntityService<V> implements Closeable {
     }
 
     protected byte getLastDataFileNumber() {
-        byte i = MAX_NUMBER_OF_DATA_FILES;
+        byte i = 1;
         while (true) {
             String dataFilePath = dirPath + File.separator + Integer.toString(i) + DATA_FILE_SUFFIX;
-            if (!new File(dataFilePath).exists())
-                return --i;
+            if (!new File(dataFilePath).exists()){
+                return (byte) i;
+            }else{
+                i++;
+            }
         }
     }
 }
