@@ -35,23 +35,17 @@ public class IndexService implements Closeable {
 
     private RandomAccessFile indexFile;
 
-    private String dirPath;
-    private int bucketSize;
+    private Configuration configuration;
     private int currentVersion;
 
-    public IndexService(String path) {
-        this(path, 4096);
-    }
-
-    public IndexService(String path, int bucketSize) {
+    public IndexService(Configuration configuration) {
         super();
-        this.dirPath = path;
-        this.bucketSize = bucketSize;
+        this.configuration = configuration;
     }
 
     public Position getIndexRef(String key) {
         long hashCode = toUnsignedInt(key.hashCode());
-        long pos = ((hashCode % bucketSize) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
+        long pos = ((hashCode % configuration.getBucketSize()) * INDEX_SIZE_PER_RECORD) + HEADER_SIZE;
         return new Position((byte) 1, pos);
     }
 
@@ -60,7 +54,7 @@ public class IndexService implements Closeable {
             return indexFile;
         }
 
-        String indexFilePath = dirPath + File.separator + "1" + INDEX_FILE_SUFFIX;
+        String indexFilePath = configuration.getDirPath() + File.separator + "1" + INDEX_FILE_SUFFIX;
 
         File file = new File(indexFilePath);
         boolean isNew = !file.exists();
@@ -76,20 +70,32 @@ public class IndexService implements Closeable {
 
     protected void loadHeader(RandomAccessFile indexFile) throws IOException {
         this.currentVersion = indexFile.readInt();
+
         int loadedBucketSize = indexFile.readInt();
-        if (this.bucketSize != loadedBucketSize) {
+        int configBucketSize = this.configuration.getBucketSize();
+        if (configBucketSize != loadedBucketSize) {
             logger.warn("Specified bucketSize '{}' is different from the bucketSize '{}' in the header of index file.",
-                        this.bucketSize, loadedBucketSize);
-            logger.warn("Specified bucketSize '{}' is ignored.", this.bucketSize);
+                        configBucketSize, loadedBucketSize);
+            logger.warn("Specified bucketSize '{}' is ignored.", configBucketSize);
         }
-        this.bucketSize = loadedBucketSize;
+        this.configuration.setBucketSize(loadedBucketSize);
+
+        long loadedDataFileSize = indexFile.readLong();
+        long configDataFileSize = configuration.getDataFileSize();
+        if (configDataFileSize != loadedDataFileSize) {
+            logger.warn("Specified dataFileSize '{}' is different from the dataFileSize '{}' in the header of index file.",
+                        configDataFileSize, loadedDataFileSize);
+            logger.warn("Specified dataFileSize '{}' is ignored.", configDataFileSize);
+        }
+        this.configuration.setDataFileSize(loadedDataFileSize);
     }
 
     protected void initializeIndexfile(RandomAccessFile indexFile) throws IOException {
         this.currentVersion = VERSION;
         indexFile.writeInt(this.currentVersion);
-        indexFile.writeInt(this.bucketSize);
-        indexFile.setLength(HEADER_SIZE + (INDEX_SIZE_PER_RECORD * this.bucketSize));
+        indexFile.writeInt(this.configuration.getBucketSize());
+        indexFile.writeLong(this.configuration.getDataFileSize());
+        indexFile.setLength(HEADER_SIZE + (INDEX_SIZE_PER_RECORD * this.configuration.getBucketSize()));
     }
 
     public Position getDataPosition(String key) throws IOException {
@@ -206,7 +212,7 @@ public class IndexService implements Closeable {
 
     public boolean hasNext() throws IOException {
         RandomAccessFile indexFile = getIndexFile();
-        return (indexFile.getFilePointer() < (HEADER_SIZE + (bucketSize * INDEX_SIZE_PER_RECORD)));
+        return (indexFile.getFilePointer() < (HEADER_SIZE + (this.configuration.getBucketSize() * INDEX_SIZE_PER_RECORD)));
     }
 
     public Position read() throws IOException {

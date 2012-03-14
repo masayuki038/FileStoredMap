@@ -24,12 +24,10 @@ public class BsonStore<V> implements Store<V> {
 
     private IndexService indexService;
     private EntityService<V> entityService;
-    private String dirPath;
-    private int bucketSize;
+    private Configuration configuration;
 
-    public BsonStore(String path, int bucketSize) {
-        this.dirPath = path;
-        this.bucketSize = bucketSize;
+    public BsonStore(Configuration configuration) {
+        this.configuration = configuration;
         initialize();
     }
 
@@ -123,7 +121,7 @@ public class BsonStore<V> implements Store<V> {
                                 dataRef = getNextPosition();
                             } else {
                                 dataBlock = entityService.getDataBlock(new Position(dataBlock.getNextFileNumber(),
-                                                                                  dataBlock.getNextPointer()));
+                                                                                    dataBlock.getNextPointer()));
                             }
                             return key;
                         } catch (IOException e) {
@@ -273,13 +271,13 @@ public class BsonStore<V> implements Store<V> {
     }
 
     protected void initialize() {
-        this.entityService = new EntityService<V>(this.dirPath);
-        this.indexService = new IndexService(this.dirPath, this.bucketSize);
+        this.entityService = new EntityService<V>(this.configuration);
+        this.indexService = new IndexService(this.configuration);
     }
 
     protected void deleteDirectory() {
         try {
-            FileUtils.deleteDirectory(new File(this.dirPath));
+            FileUtils.deleteDirectory(new File(configuration.getDirPath()));
         } catch (IOException ignore) {}
 
     }

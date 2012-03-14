@@ -36,4 +36,11 @@ public class TestUtils {
         assertThat(a.getCreatedAt(), is(b.getCreatedAt()));
     }
 
+    public static Configuration createConfiguration(String dirPath, int bucketSize) {
+        Configuration configuration = new Configuration();
+        configuration.setDirPath(dirPath);
+        configuration.setBucketSize(bucketSize);
+        return configuration;
+    }
+
 }

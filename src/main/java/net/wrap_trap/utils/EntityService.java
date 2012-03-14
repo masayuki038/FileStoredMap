@@ -48,10 +48,10 @@ public class EntityService<V> implements Closeable {
     private BSONEncoder encoder = new BSONEncoder();
     private BSONDecoder decoder = new BSONDecoder();
     private BSONObjectMapper objectMapper = new BSONObjectMapper();
-    private String dirPath;
+    private Configuration configuration;
 
-    public EntityService(String path) {
-        this.dirPath = path;
+    public EntityService(Configuration configuration) {
+        this.configuration = configuration;
     }
 
     public BSONObject readFrom(String key, Position dataRef) throws IOException, FileNotFoundException {
@@ -158,7 +158,7 @@ public class EntityService<V> implements Closeable {
     }
 
     protected String getDataFilePath(byte fileNumber) {
-        return dirPath + File.separator + Integer.toString(fileNumber) + DATA_FILE_SUFFIX;
+        return configuration.getDirPath() + File.separator + Integer.toString(fileNumber) + DATA_FILE_SUFFIX;
     }
 
     protected RandomAccessFile getDataFile(byte dataFileNumber) throws FileNotFoundException {
@@ -234,10 +234,10 @@ public class EntityService<V> implements Closeable {
     protected byte getLastDataFileNumber() {
         byte i = 1;
         while (true) {
-            String dataFilePath = dirPath + File.separator + Integer.toString(i) + DATA_FILE_SUFFIX;
-            if (!new File(dataFilePath).exists()){
+            String dataFilePath = configuration.getDirPath() + File.separator + Integer.toString(i) + DATA_FILE_SUFFIX;
+            if (!new File(dataFilePath).exists()) {
                 return (byte) i;
-            }else{
+            } else {
                 i++;
             }
         }

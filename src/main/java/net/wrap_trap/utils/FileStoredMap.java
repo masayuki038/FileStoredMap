@@ -17,13 +17,19 @@ public class FileStoredMap<V> implements Map<String, V> {
     private String dirPath;
 
     public FileStoredMap(String dirPath) {
-        this(dirPath, 4096);
+        Configuration configuration = new Configuration();
+        configuration.setDirPath(dirPath);
+        initialize(configuration);
     }
 
-    public FileStoredMap(String dirPath, int bucketSize) {
-        this.dirPath = dirPath;
+    public FileStoredMap(Configuration configuration) {
+        initialize(configuration);
+    }
+
+    protected void initialize(Configuration configuration) {
+        this.dirPath = configuration.getDirPath();
         initializeDirectory();
-        store = new BsonStore<V>(dirPath, bucketSize);
+        store = new BsonStore<V>(configuration);
     }
 
     public void putAll(Map<? extends String, ? extends V> map) {

@@ -191,7 +191,7 @@ public class FileStoredMapTest {
         }
 
         try {
-            map = new FileStoredMap<Employee>("tmp/reopen", 512);
+            map = new FileStoredMap<Employee>(TestUtils.createConfiguration("tmp/reopen", 512));
             Employee ret = map.get("emp1");
             TestUtils.assertEmployeeEquivalent(emp1, ret);
         } finally {
@@ -232,7 +232,7 @@ public class FileStoredMapTest {
         expected.add("emp2");
         expected.add("emp3");
         try {
-            map = new FileStoredMap<Employee>("tmp/keyset", 2);
+            map = new FileStoredMap<Employee>(TestUtils.createConfiguration("tmp/keyset", 2));
             map.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
             map.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
             map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
@@ -257,7 +257,7 @@ public class FileStoredMapTest {
         expected.add("emp2");
         expected.add("emp3");
         try {
-            map = new FileStoredMap<Employee>("tmp/testContainsKey", 2);
+            map = new FileStoredMap<Employee>(TestUtils.createConfiguration("tmp/testContainsKey", 2));
             map.put("emp1", TestUtils.createEmployee("hoge", 256, new Date()));
             map.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
             map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
@@ -288,7 +288,7 @@ public class FileStoredMapTest {
         container.put("emp2", TestUtils.createEmployee("foo", 128, new Date()));
 
         try {
-            map = new FileStoredMap<Employee>("tmp/testPutAll", 2);
+            map = new FileStoredMap<Employee>(TestUtils.createConfiguration("tmp/testPutAll", 2));
             map.put("emp3", TestUtils.createEmployee("bar", 64, new Date()));
             map.putAll(container);
             for (String key : expected) {
@@ -317,7 +317,7 @@ public class FileStoredMapTest {
         expected.add(emp2);
         expected.add(emp3);
         try {
-            map = new FileStoredMap<Employee>("tmp/values", 2);
+            map = new FileStoredMap<Employee>(TestUtils.createConfiguration("tmp/values", 2));
             map.put("emp1", emp1);
             map.put("emp2", emp2);
             map.put("emp3", emp3);
