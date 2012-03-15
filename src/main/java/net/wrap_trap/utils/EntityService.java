@@ -176,13 +176,18 @@ public class EntityService<V> implements Closeable {
         if (logger.isTraceEnabled()) {
             logger.trace("writeTo, bytes:{}", bytes);
         }
-        RandomAccessFile dataFile = null;
+        int length = bytes.length + EntityService.NEXT_DATA_POINTER_SIZE;
+
         byte lastDataFileNumber = getLastDataFileNumber();
-        dataFile = getDataFile(lastDataFileNumber);
+        RandomAccessFile dataFile = getDataFile(lastDataFileNumber);
 
         long dataPos = dataFile.length();
+        if ((dataPos + 4/* size of length field */+ length) > configuration.getDataFileSize()) {
+            dataFile = getDataFile(++lastDataFileNumber);
+            dataPos = dataFile.length();
+        }
         dataFile.seek(dataPos);
-        int length = bytes.length + EntityService.NEXT_DATA_POINTER_SIZE;
+
         dataFile.writeInt(length);
         dataFile.write(bytes);
         dataFile.writeLong(0L); // the file position of next data.

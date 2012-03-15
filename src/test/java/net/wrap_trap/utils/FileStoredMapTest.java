@@ -5,6 +5,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -339,5 +341,42 @@ public class FileStoredMapTest {
                 map.close();
             }
         }
+    }
+
+    @Test
+    public void testDataFileSizeThreshold() throws IOException {
+        TestUtils.deleteFiles("tmp/datafilesize");
+        FileStoredMap<String> map = null;
+        try {
+            Configuration configuration = new Configuration();
+            configuration.setDirPath("tmp/datafilesize");
+            configuration.setDataFileSize(32);
+            map = new FileStoredMap<String>(configuration);
+            map.put("a", "aaaaa");
+            File file = new File("tmp/datafilesize");
+            FilenameFilter filter = new DataFilenameFilter();
+            String[] dataFiles = file.list(filter);
+            assertThat(dataFiles.length, is(1));
+
+            map.put("b", "aaaaaa");
+            dataFiles = file.list(filter);
+            assertThat(dataFiles.length, is(2));
+
+            assertThat("aaaaaa", is(map.get("b")));
+            assertThat("aaaaa", is(map.get("a")));
+        } finally {
+            if (map != null) {
+                map.close();
+            }
+        }
+
+    }
+
+    class DataFilenameFilter implements FilenameFilter {
+        @Override
+        public boolean accept(File dir, String name) {
+            return name.endsWith(".dat");
+        }
+
     }
 }
