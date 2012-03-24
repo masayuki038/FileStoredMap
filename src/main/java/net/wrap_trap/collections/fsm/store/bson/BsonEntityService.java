@@ -65,43 +65,49 @@ public class BsonEntityService<V> implements Closeable {
         return readDataFile(key, dataRef);
     }
 
-    public void updateNextRef(BsonDataBlock dataRef, BsonDataBlock lastDataRef) throws IOException {
-        RandomAccessFile dataFile = getDataFile(lastDataRef.getCurrentFileNumber());
-        dataFile.seek(lastDataRef.getCurrentPointer());
+    public void updateDataBlockLink(BsonDataBlock from, BsonDataBlock to) throws IOException {
+        RandomAccessFile dataFile = getDataFile(from.getCurrentFileNumber());
+        dataFile.seek(from.getCurrentPointer());
         int length = dataFile.readInt();
-        dataFile.seek(lastDataRef.getCurrentPointer() + BsonEntityService.DATA_LENGTH_FIELD_SIZE + length -
+        dataFile.seek(from.getCurrentPointer() + BsonEntityService.DATA_LENGTH_FIELD_SIZE + length -
                       BsonEntityService.NEXT_DATA_POINTER_SIZE);
-        dataFile.writeLong(dataRef.getNextPointer());
-        dataFile.writeByte(dataRef.getNextFileNumber());
+        dataFile.writeLong(to.getNextPointer());
+        dataFile.writeByte(to.getNextFileNumber());
     }
 
-    public void updateNextRef(BsonDataBlockPosition rootDataRef, BsonDataBlockPosition nextDataRef) throws IOException {
-        long dataPos = rootDataRef.getPointer();
-        byte dataFileNumber = rootDataRef.getFileNumber();
+    public void updateDataBlockLink(BsonDataBlockPosition from, BsonDataBlockPosition to) throws FileNotFoundException,
+            IOException {
+        RandomAccessFile f = getDataFile(from.getFileNumber());
+        f.seek(from.getPointer());
+        int dataSize = f.readInt();
+
+        f.seek(from.getPointer() + BsonEntityService.DATA_LENGTH_FIELD_SIZE + dataSize -
+               BsonEntityService.NEXT_DATA_POINTER_SIZE);
+        f.writeLong(to.getPointer());
+        f.writeByte(to.getFileNumber());
+        if (logger.isTraceEnabled()) {
+            logger.trace("\tupdate to data file, dataPos:{}, nextDataPos:{}, nextDataFileNumber:{}",
+                         new Object[] { from.getPointer(), to.getPointer(), to.getFileNumber() });
+        }
+    }
+
+    public BsonDataBlockPosition getLastDataBlockPosition(BsonDataBlockPosition start) throws IOException {
+        BsonDataBlockPosition current = start;
 
         while (true) {
-            RandomAccessFile f = getDataFile(dataFileNumber);
-            Preconditions.checkArgument((dataPos >= 0L), "dataPos < 0 dataPos: %d", dataPos);
-            f.seek(dataPos);
+            Preconditions.checkArgument((current.getPointer() >= 0L), "dataPos < 0 dataPos: %d", current.getPointer());
+            RandomAccessFile f = getDataFile(current.getFileNumber());
+            f.seek(current.getPointer());
             int dataSize = f.readInt();
-            f.seek(dataPos + BsonEntityService.DATA_LENGTH_FIELD_SIZE + dataSize -
+            f.seek(current.getPointer() + BsonEntityService.DATA_LENGTH_FIELD_SIZE + dataSize -
                    BsonEntityService.NEXT_DATA_POINTER_SIZE);
             long nextDataPos = f.readLong();
             byte nextFileNumber = f.readByte();
             BsonDataBlockPosition tmpRef = new BsonDataBlockPosition(nextFileNumber, nextDataPos);
             if (tmpRef.isEmpty()) {
-                f.seek(dataPos + BsonEntityService.DATA_LENGTH_FIELD_SIZE + dataSize -
-                       BsonEntityService.NEXT_DATA_POINTER_SIZE);
-                f.writeLong(nextDataRef.getPointer());
-                f.writeByte(nextDataRef.getFileNumber());
-                if (logger.isTraceEnabled()) {
-                    logger.trace("\tupdate to data file, dataPos:{}, nextDataPos:{}, nextDataFileNumber:{}",
-                                 new Object[] { dataPos, nextDataRef.getPointer(), nextDataRef.getFileNumber() });
-                }
-                return;
+                return current;
             } else {
-                dataPos = nextDataPos;
-                dataFileNumber = nextFileNumber;
+                current = new BsonDataBlockPosition(nextFileNumber, nextDataPos);
             }
         }
     }

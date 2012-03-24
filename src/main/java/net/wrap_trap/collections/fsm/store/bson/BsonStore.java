@@ -310,7 +310,7 @@ public class BsonStore<V> implements Store<V> {
                 bsonIndexService.clearIndex(indexRef);
             } else if (dataRefList.size() > 0) {
                 BsonDataBlock lastDataRef = dataRefList.get(dataRefList.size() - 1);
-                bsonEntityService.updateNextRef(bsonDataBlock, lastDataRef);
+                bsonEntityService.updateDataBlockLink(lastDataRef, bsonDataBlock);
             } else {
                 // remove at the first element.
                 bsonIndexService.updateIndex(indexRef, dataRef);
@@ -325,12 +325,13 @@ public class BsonStore<V> implements Store<V> {
         }
     }
 
-    public void updateIndex(BsonDataBlockPosition indexRef, BsonDataBlockPosition nextDataRef) throws IOException {
+    public void updateIndex(BsonDataBlockPosition indexRef, BsonDataBlockPosition newData) throws IOException {
         if (bsonIndexService.indexUpdatable(indexRef)) {
-            bsonIndexService.updateIndex(indexRef, nextDataRef);
+            bsonIndexService.updateIndex(indexRef, newData);
         } else {
-            BsonDataBlockPosition rootDataRef = bsonIndexService.getDataPosition(indexRef);
-            bsonEntityService.updateNextRef(rootDataRef, nextDataRef);
+            BsonDataBlockPosition root = bsonIndexService.getDataPosition(indexRef);
+            BsonDataBlockPosition last = bsonEntityService.getLastDataBlockPosition(root);
+            bsonEntityService.updateDataBlockLink(last, newData);
         }
     }
 

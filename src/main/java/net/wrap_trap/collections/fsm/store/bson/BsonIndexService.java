@@ -108,7 +108,8 @@ public class BsonIndexService implements Closeable {
         return getDataPosition(getIndexFile(), indexRef);
     }
 
-    protected BsonDataBlockPosition getDataPosition(RandomAccessFile indexFile, BsonDataBlockPosition indexRef) throws IOException {
+    protected BsonDataBlockPosition getDataPosition(RandomAccessFile indexFile, BsonDataBlockPosition indexRef)
+            throws IOException {
         long pos = indexRef.getPointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD)
             return null;
@@ -153,18 +154,17 @@ public class BsonIndexService implements Closeable {
         RandomAccessFile indexFile = getIndexFile();
         indexFile.seek(indexRef.getPointer());
 
-        boolean indexWritable = false;
         long pos = indexFile.getFilePointer();
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
-            indexWritable = true;
+            return true;
         } else {
             long dataRef = indexFile.readLong();
             byte dataFileNumber = indexFile.readByte();
             if ((dataRef == 0) && (dataFileNumber == 0)) {
-                indexWritable = true;
+                return true;
             }
         }
-        return indexWritable;
+        return false;
     }
 
     @Override
