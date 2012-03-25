@@ -25,23 +25,23 @@ File format is BSON(http://bsonspec.org/).
 - Jars: http://wrap-trap.net/maven2/snapshot/net/wrap-trap/collections/FileStoredMap/0.0.1-SNAPSHOT/
 - Repository URL: http://wrap-trap.net/maven2/snapshot/
 
-  &lt;dependencies&gt;
-    &lt;dependency&gt;
-      &lt;groupId&gt;net.wrap-trap.collections&lt;/groupId&gt;
-      &lt;artifactId&gt;FileStoredMap&lt;/artifactId&gt;
-      &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
-    &lt;/dependency&gt;
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;net.wrap-trap.collections&lt;/groupId&gt;
+            &lt;artifactId&gt;FileStoredMap&lt;/artifactId&gt;
+            &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+        &lt;/dependency&gt;
+        ...
+    &lt;/dependencies&gt;
     ...
-  &lt;/dependencies&gt;
-  ...
-  &lt;repositories&gt;
-    &lt;repository&gt;
-      &lt;id&gt;wrap-trap.net/maven2/snapshot&lt;/id&gt;
-      &lt;name&gt;wrap-trap.net Maven Repository&lt;/name&gt;
-      &lt;url&gt;http://wrap-trap.net/maven2/snapshot&lt;/url&gt;
-    &lt;/repository&gt;
-    ...
-  &lt;repositories&gt;
+    &lt;repositories&gt;
+        &lt;repository&gt;
+            &lt;id&gt;wrap-trap.net/maven2/snapshot&lt;/id&gt;
+            &lt;name&gt;wrap-trap.net Maven Repository&lt;/name&gt;
+            &lt;url&gt;http://wrap-trap.net/maven2/snapshot&lt;/url&gt;
+        &lt;/repository&gt;
+        ...
+    &lt;repositories&gt;
 
 ## License
 MIT: http://rem.mit-license.org
