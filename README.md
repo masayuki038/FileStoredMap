@@ -1,5 +1,5 @@
 ## Summary
-FileStoredMap is an implementation of java.util.Map. The Entry(key-value) is stored in files instead of Java heap avoiding the Out Of Memory Error. 
+FileStoredMap is an implementation of java.util.Map. The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. 
 For example, below:
 
     @Test
