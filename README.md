@@ -24,7 +24,7 @@ File format is BSON(http://bsonspec.org/).
 ## Maven Repository
 - Jars: http://wrap-trap.net/maven2/snapshot/net/wrap-trap/collections/FileStoredMap/0.0.1-SNAPSHOT/
 - Repository URL: http://wrap-trap.net/maven2/snapshot/
-<pre><code>
+
   &lt;dependencies&gt;
     &lt;dependency&gt;
       &lt;groupId&gt;net.wrap-trap.collections&lt;/groupId&gt;
@@ -33,7 +33,7 @@ File format is BSON(http://bsonspec.org/).
     &lt;/dependency&gt;
     ...
   &lt;/dependencies&gt;
-...
+  ...
   &lt;repositories&gt;
     &lt;repository&gt;
       &lt;id&gt;wrap-trap.net/maven2/snapshot&lt;/id&gt;
@@ -42,7 +42,6 @@ File format is BSON(http://bsonspec.org/).
     &lt;/repository&gt;
     ...
   &lt;repositories&gt;
-</code></pre>
 
 ## License
 MIT: http://rem.mit-license.org
