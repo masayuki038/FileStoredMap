@@ -1,27 +1,30 @@
 package net.wrap_trap.collections.fsm.store.bson;
 
+import org.bson.BSONDecoder;
 import org.bson.BSONObject;
 
 public class BsonDataBlock {
 
-    private BSONObject bsonObject;
+    private BSONDecoder decoder = new BSONDecoder();
+
+    private byte[] body;
     private long currentPointer;
     private byte currentFileNumber;
     private long nextPointer;
     private byte nextFileNumber;
+    private BSONObject bsonObject;
 
-    public BsonDataBlock(BSONObject bsonObject, long currentPointer, byte currentFileNumber, long nextPointer,
-            byte nextFileNumber) {
+    public BsonDataBlock(byte[] body, long currentPointer, byte currentFileNumber, long nextPointer, byte nextFileNumber) {
         super();
-        this.bsonObject = bsonObject;
+        this.body = body;
         this.currentPointer = currentPointer;
         this.currentFileNumber = currentFileNumber;
         this.nextPointer = nextPointer;
         this.nextFileNumber = nextFileNumber;
     }
 
-    public BSONObject getBsonObject() {
-        return bsonObject;
+    public byte[] getBoby() {
+        return body;
     }
 
     public long getCurrentPointer() {
@@ -38,5 +41,12 @@ public class BsonDataBlock {
 
     public byte getNextFileNumber() {
         return nextFileNumber;
+    }
+
+    public BSONObject getBsonObject() {
+        if (bsonObject == null) {
+            bsonObject = decoder.readObject(body);
+        }
+        return bsonObject;
     }
 }

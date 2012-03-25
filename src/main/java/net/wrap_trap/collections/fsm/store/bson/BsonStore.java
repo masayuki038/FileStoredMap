@@ -264,14 +264,14 @@ public class BsonStore<V> implements Store<V> {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws IOException {
         close();
         deleteDirectory();
         initialize();
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         bsonEntityService.close();
         bsonIndexService.close();
     }
