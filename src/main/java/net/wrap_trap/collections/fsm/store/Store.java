@@ -7,6 +7,8 @@ import java.util.Set;
 
 public interface Store<V> extends Closeable {
 
+    void initialize() throws IOException;
+
     V get(String key) throws IOException;
 
     V put(String key, V v) throws IOException;

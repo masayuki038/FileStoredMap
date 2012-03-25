@@ -31,7 +31,7 @@ public class BsonStore<V> implements Store<V> {
     private BsonEntityService<V> bsonEntityService;
     private Configuration configuration;
 
-    public BsonStore(Configuration configuration) {
+    public BsonStore(Configuration configuration) throws IOException {
         this.configuration = configuration;
         initialize();
     }
@@ -101,7 +101,7 @@ public class BsonStore<V> implements Store<V> {
 
                     {
                         try {
-                            bsonIndexService.seekIndexHead();
+                            bsonIndexService.resetPosition();
                             dataRef = getNextPosition();
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -267,7 +267,6 @@ public class BsonStore<V> implements Store<V> {
     public void clear() throws IOException {
         close();
         deleteDirectory();
-        initialize();
     }
 
     @Override
@@ -276,7 +275,8 @@ public class BsonStore<V> implements Store<V> {
         bsonIndexService.close();
     }
 
-    protected void initialize() {
+    public void initialize() throws IOException {
+        new File(this.configuration.getDirPath()).mkdir();
         this.bsonEntityService = new BsonEntityService<V>(this.configuration);
         this.bsonIndexService = new BsonIndexService(this.configuration);
     }

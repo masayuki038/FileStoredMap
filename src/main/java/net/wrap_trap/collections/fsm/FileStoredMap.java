@@ -1,6 +1,5 @@
 package net.wrap_trap.collections.fsm;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -17,21 +16,18 @@ public class FileStoredMap<V> implements Map<String, V> {
     protected static Logger logger = LoggerFactory.getLogger(FileStoredMap.class);
 
     private Store<V> store;
-    private String dirPath;
 
-    public FileStoredMap(String dirPath) {
+    public FileStoredMap(String dirPath) throws IOException {
         Configuration configuration = new Configuration();
         configuration.setDirPath(dirPath);
         initialize(configuration);
     }
 
-    public FileStoredMap(Configuration configuration) {
+    public FileStoredMap(Configuration configuration) throws IOException {
         initialize(configuration);
     }
 
-    protected void initialize(Configuration configuration) {
-        this.dirPath = configuration.getDirPath();
-        initializeDirectory();
+    protected void initialize(Configuration configuration) throws IOException {
         store = new BsonStore<V>(configuration);
     }
 
@@ -63,7 +59,7 @@ public class FileStoredMap<V> implements Map<String, V> {
         }
         try {
             store.clear();
-            initializeDirectory();
+            store.initialize();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -159,9 +155,5 @@ public class FileStoredMap<V> implements Map<String, V> {
 
     public void close() throws IOException {
         store.close();
-    }
-
-    protected void initializeDirectory() {
-        new File(this.dirPath).mkdir();
     }
 }
