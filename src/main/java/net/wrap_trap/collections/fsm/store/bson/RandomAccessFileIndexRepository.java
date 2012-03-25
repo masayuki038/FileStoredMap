@@ -11,6 +11,17 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closeables;
 
+/**
+ * <pre>
+ *  structure of index
+ * +--+--+--+--+--+--+--+--+--+
+ * |           a.          |b.|
+ * +--+-+--+--+--+---+--+--+--+
+ * 
+ * a. a offset of data file.[long]
+ * b. data file number(1-2).[byte]
+ * </pre>
+ */
 public class RandomAccessFileIndexRepository implements IndexRepository {
 
     private static final int INDEX_SIZE_PER_RECORD = 9;
@@ -53,7 +64,6 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
         }
 
         String indexFilePath = configuration.getDirPath() + File.separator + "1" + INDEX_FILE_SUFFIX;
-
         File file = new File(indexFilePath);
         boolean isNew = !file.exists();
 
@@ -243,8 +253,9 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
     public BsonDataBlockPosition read() throws IOException {
         long pos = indexFile.readLong();
         byte fileNumber = indexFile.readByte();
-        if (fileNumber > 0) {
-            return new BsonDataBlockPosition(fileNumber, pos);
+        BsonDataBlockPosition ret = new BsonDataBlockPosition(fileNumber, pos);
+        if (!ret.isEmpty()) {
+            return ret;
         }
         return null;
     }

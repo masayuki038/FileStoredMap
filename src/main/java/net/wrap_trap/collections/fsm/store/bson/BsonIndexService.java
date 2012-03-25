@@ -8,22 +8,11 @@ import net.wrap_trap.collections.fsm.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * <pre>
- *  structure of index
- * +--+--+--+--+--+--+--+--+--+
- * |           a.          |b.|
- * +--+-+--+--+--+---+--+--+--+
- * 
- * a. a offset of data file.[long]
- * b. data file number(1-2).[byte]
- * </pre>
- */
 public class BsonIndexService implements Closeable {
 
     protected static Logger logger = LoggerFactory.getLogger(BsonIndexService.class);
 
-    private RandomAccessFileIndexRepository repository;
+    private IndexRepository repository;
 
     public BsonIndexService(Configuration configuration) throws IOException {
         super();
@@ -52,7 +41,7 @@ public class BsonIndexService implements Closeable {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         repository.close();
     }
 
