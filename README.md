@@ -1,5 +1,11 @@
 ## Summary
-FileStoredMap is an implementation of java.util.Map. The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. 
+FileStoredMap is an implementation of java.util.Map. 
+The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. 
+Since this map dosen't eat up Java heap area.
+
+FileStoredMap serializes Map.Entry(key-value) to BSON(http://bsonspec.org/) and writes to data file when called 'put'.
+Adn deserializes BSON to Java Object when called 'get'.
+
 For example, below:
 
     @Test
@@ -8,18 +14,17 @@ For example, below:
         FileStoredMap<Employee> map = null;
         try {
             map = new FileStoredMap<Employee>("tmp/empdir");
-            Date createdAt = new Date();
-            Employee emp = TestUtils.createEmployee("hoge", 256, createdAt);
+            Employee emp = TestUtils.createEmployee("hoge", 256, new Date());
+            // 'emp' is serialized to bson by FileStoredMap and written to data file.
             map.put("emp", emp);
-            TestUtils.assertEmployeeEquivalent(emp, map.get("emp"));
+            // check the equivalent between local variable object and deserialized one.
+            TestUtils.assertEmployeeEquivalent(emp, map.get("emp"));  
         } finally {
             if (map != null) {
                 map.close();
             }
         }
     }
-
-File format is BSON(http://bsonspec.org/).
 
 ## Maven Repository
 - Jars: http://wrap-trap.net/maven2/snapshot/net/wrap-trap/collections/FileStoredMap/0.0.1-SNAPSHOT/
