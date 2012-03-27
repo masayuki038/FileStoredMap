@@ -15,11 +15,11 @@ import com.google.common.io.Closeables;
  * <pre>
  *  structure of index
  * +--+--+--+--+--+--+--+--+--+
- * |           a.          |b.|
+ * |a.|          b.           |
  * +--+-+--+--+--+---+--+--+--+
  * 
- * a. a offset of data file.[long]
- * b. data file number(1-2).[byte]
+ * a. data file number(now always "1").[byte]
+ * b. a offset of data file.[long]
  * </pre>
  */
 public class RandomAccessFileIndexRepository implements IndexRepository {
@@ -147,8 +147,8 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
                                                                                                   dataFileNumber });
         }
         indexFile.seek(indexPos);
-        indexFile.writeLong(dataPos);
         indexFile.writeByte(dataFileNumber);
+        indexFile.writeLong(dataPos);
         if (logger.isTraceEnabled()) {
             logger.trace("\twrite to index file, indexPos:{}, dataPos:{}, dataFileNumber:{}",
                          new Object[] { indexPos, dataPos, dataFileNumber });
@@ -170,8 +170,8 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
         if (indexFile.length() < pos + INDEX_SIZE_PER_RECORD) {
             return true;
         } else {
-            long dataRef = indexFile.readLong();
             byte dataFileNumber = indexFile.readByte();
+            long dataRef = indexFile.readLong();
             BsonDataBlockPosition tmpPos = new BsonDataBlockPosition(dataFileNumber, dataRef);
             if (tmpPos.isEmpty()) {
                 return true;
@@ -194,8 +194,8 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
             logger.trace("clearIndex, pos:{}", pos);
         }
         indexFile.seek(pos);
-        indexFile.writeLong(0L);
         indexFile.writeByte(0);
+        indexFile.writeLong(0L);
     }
 
     /*
@@ -251,8 +251,8 @@ public class RandomAccessFileIndexRepository implements IndexRepository {
      */
     @Override
     public BsonDataBlockPosition read() throws IOException {
-        long pos = indexFile.readLong();
         byte fileNumber = indexFile.readByte();
+        long pos = indexFile.readLong();
         BsonDataBlockPosition ret = new BsonDataBlockPosition(fileNumber, pos);
         if (!ret.isEmpty()) {
             return ret;

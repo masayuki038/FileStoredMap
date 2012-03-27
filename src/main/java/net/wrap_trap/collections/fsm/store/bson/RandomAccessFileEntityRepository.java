@@ -19,13 +19,13 @@ import com.google.common.io.Closeables;
  * <pre>
  *  data format
  * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- * |     a.    |     b.    |           c.          |d.|  
+ * |     a.    |     b.    |c.|           d.          |  
  * +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
  * 
  * a. a data length(from b. to d.)[integer]
  * b. data[byte[]]
- * c. a file position of next data.[long]
- * d. a file number of next data.[byte]
+ * c. a file number of next data.[byte]
+ * d. a file position of next data.[long]
  * </pre>
  */
 public class RandomAccessFileEntityRepository implements EntityRepository {
@@ -65,8 +65,8 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
         dataFile.seek(from.getCurrentPointer());
         int length = dataFile.readInt();
         dataFile.seek(from.getCurrentPointer() + DATA_LENGTH_FIELD_SIZE + length - NEXT_DATA_POINTER_SIZE);
-        dataFile.writeLong(to.getNextPointer());
         dataFile.writeByte(to.getNextFileNumber());
+        dataFile.writeLong(to.getNextPointer());
     }
 
     /*
@@ -85,8 +85,8 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
         int dataSize = f.readInt();
 
         f.seek(from.getPointer() + DATA_LENGTH_FIELD_SIZE + dataSize - NEXT_DATA_POINTER_SIZE);
-        f.writeLong(to.getPointer());
         f.writeByte(to.getFileNumber());
+        f.writeLong(to.getPointer());
         if (logger.isTraceEnabled()) {
             logger.trace("\tupdate to data file, dataPos:{}, nextDataPos:{}, nextDataFileNumber:{}",
                          new Object[] { from.getPointer(), to.getPointer(), to.getFileNumber() });
@@ -110,8 +110,8 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
             f.seek(current.getPointer());
             int dataSize = f.readInt();
             f.seek(current.getPointer() + DATA_LENGTH_FIELD_SIZE + dataSize - NEXT_DATA_POINTER_SIZE);
-            long nextDataPos = f.readLong();
             byte nextFileNumber = f.readByte();
+            long nextDataPos = f.readLong();
             BsonDataBlockPosition tmpRef = new BsonDataBlockPosition(nextFileNumber, nextDataPos);
             if (tmpRef.isEmpty()) {
                 return current;
@@ -141,8 +141,8 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
         int read = dataFile.read(buf);
         Preconditions.checkState((read == bodySize), "failed to read data body.");
 
-        long nextDataPos = dataFile.readLong();
         byte nextFileNumber = dataFile.readByte();
+        long nextDataPos = dataFile.readLong();
         return new BsonDataBlock(buf, dataPos, fileNumber, nextDataPos, nextFileNumber);
     }
 
@@ -178,8 +178,8 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
 
         dataFile.writeInt(length);
         dataFile.write(bytes);
-        dataFile.writeLong(0L); // the file position of next data.
         dataFile.writeByte(0); // the file position of next data.
+        dataFile.writeLong(0L); // the file position of next data.
 
         if (logger.isTraceEnabled()) {
             logger.trace("\twrite to data file, dataPos:{}, length:{}", dataPos, DATA_LENGTH_FIELD_SIZE + length);
