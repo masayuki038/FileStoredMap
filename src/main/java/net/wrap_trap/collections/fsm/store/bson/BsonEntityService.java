@@ -59,6 +59,8 @@ public class BsonEntityService<V> implements Closeable {
     protected BSONObject readDataFile(String key, BsonDataBlockPosition dataRef) throws IOException {
         if (logger.isTraceEnabled()) {
             logger.trace("readDataFile, key:{}, dataRef:{}", new Object[] { key, dataRef });
+            logger.trace("dataRef: fileNumber: {}, position: {}",
+                         new Object[] { dataRef.getFileNumber(), dataRef.getPointer() });
         }
         BsonDataBlock bsonDataBlock = getDataBlock(dataRef);
         if (key.equals(getKey(bsonDataBlock)))

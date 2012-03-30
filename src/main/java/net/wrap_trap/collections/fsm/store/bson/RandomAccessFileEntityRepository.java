@@ -151,6 +151,14 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
     }
 
     protected RandomAccessFile getDataFile(byte dataFileNumber) throws FileNotFoundException {
+        if (dataFileNumber == 0) {
+            // init.
+            String dataFilePath = getDataFilePath((byte) 1);
+            RandomAccessFile dataFile = new RandomAccessFile(dataFilePath, "rw");
+            dataFileList.add(0, dataFile);
+            return dataFile;
+        }
+
         int idx = dataFileNumber - 1;
         if (dataFileNumber <= dataFileList.size())
             return dataFileList.get(idx);
@@ -160,18 +168,23 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
         return dataFile;
     }
 
+    protected RandomAccessFile getLastDataFile() throws FileNotFoundException {
+        return getDataFile(getLastDataFileNumber());
+    }
+
     public BsonDataBlockPosition writeTo(byte[] bytes) throws IOException {
         if (logger.isTraceEnabled()) {
             logger.trace("writeTo, bytes:{}", bytes);
         }
         int length = bytes.length + NEXT_DATA_POINTER_SIZE;
 
-        byte lastDataFileNumber = getLastDataFileNumber();
-        RandomAccessFile dataFile = getDataFile(lastDataFileNumber);
+        RandomAccessFile dataFile = getLastDataFile();
+        byte lastDataFileNumber = getLastDataFileNumber(); // keep the lastFileNumber for returning.
+        // FIXME getDataFile() and getLastDataFile() should return the data file with file number for keeping the consistency of lastDataFileNumber.
 
         long dataPos = dataFile.length();
         if ((dataPos + 4/* size of length field */+ length) > configuration.getDataFileSize()) {
-            dataFile = getDataFile((byte) (lastDataFileNumber + 1));
+            dataFile = getDataFile((byte) (++lastDataFileNumber));
             dataPos = dataFile.length();
         }
         dataFile.seek(dataPos);
@@ -192,7 +205,7 @@ public class RandomAccessFileEntityRepository implements EntityRepository {
         while (true) {
             String dataFilePath = configuration.getDirPath() + File.separator + Integer.toString(i) + DATA_FILE_SUFFIX;
             if (!new File(dataFilePath).exists()) {
-                return (byte) i;
+                return (byte) (i - 1);
             } else {
                 i++;
             }

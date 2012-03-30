@@ -14,9 +14,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import net.wrap_trap.collections.fsm.Configuration;
-import net.wrap_trap.collections.fsm.FileStoredMap;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -365,8 +362,8 @@ public class FileStoredMapTest {
             dataFiles = file.list(filter);
             assertThat(dataFiles.length, is(2));
 
-            assertThat("aaaaaa", is(map.get("b")));
-            assertThat("aaaaa", is(map.get("a")));
+            assertThat(map.get("b"), is("aaaaaa"));
+            assertThat(map.get("a"), is("aaaaa"));
         } finally {
             if (map != null) {
                 map.close();

@@ -7,7 +7,7 @@
     </layout>
   </appender>
 
-  <logger name="net.wrap_trap.utils">
+  <logger name="net.wrap_trap.collections.fsm">
     <level value="TRACE" />
   </logger>
 
