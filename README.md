@@ -1,10 +1,9 @@
 ## Summary
 FileStoredMap is an implementation of java.util.Map. 
 The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. 
-Since this map dosen't eat up Java heap area.
 
-FileStoredMap serializes Map.Entry(key-value) to a BSON(http://bsonspec.org/) and writes to data file when called 'put'.
-And deserializes a BSON to Java Object when called 'get'.
+This map serializes a key-value pair to BSON(http://bsonspec.org/) and writes to a file when called 'put'.
+And deserializes BSON to a key-value when called 'get'.
 
 For example, below:
 
