@@ -36,6 +36,8 @@
 <p>FileStoredMap is an implementation of java.util.Map. 
 The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. </p>
 
+<h2>Serialization</h2>
+
 <p>This map serializes a key-value pair to BSON(<a href="http://bsonspec.org/">http://bsonspec.org/</a>) and writes to a file when called 'put'.
 And deserializes BSON to a key-value when called 'get'.</p>
 
@@ -60,9 +62,31 @@ public void testPutPojo() throws IOException {
 }
 </code></pre>
 
-<h2>Memory Usage</h2>
+<h2>Less Heap</h2>
 
 <p>FileStoredMap(FSM) requires a less heap than HashMap and Embeded DB(Berkeley DB, etc.) since storing data to files instead of heap. For example, comparing memory usage to Berkeley DB Java Edition(BDB).</p>
+
+<h3>Benchmark Code</h3>
+<p>Benchmark code is <a href="https://github.com/masayuki038/FileStoredMapBenchmark/blob/master/src/main/java/net/wrap_trap/collections/fsm/bench/Benchmark1.java" target="_blank">here</a>.</p>
+
+<h3>JVM Options</h3>
+<p>Write It Later.</p>
+
+<h3>reads/writes 15000</h3>
+<img src="images/heap/15000_Heap_BDB.png">&nbsp;<img src="images/heap/15000_Heap_FSM.png">
+
+<h3>reads/writes 30000</h3>
+<img src="images/heap/30000_Heap_BDB.png">&nbsp;<img src="images/heap/30000_Heap_FSM.png">
+
+<h3>reads/writes 45000</h3>
+<img src="images/heap/45000_Heap_BDB.png">&nbsp;<img src="images/heap/45000_Heap_FSM.png">
+
+<h3>reads/writes 60000</h3>
+<img src="images/heap/60000_Heap_BDB.png">&nbsp;<img src="images/heap/60000_Heap_FSM.png">
+
+<h2>Reads/Writes is Slow</h2>
+<p>FSM writes is 2-3 times slower than BDB.</p>
+<img src="images/rw/read.png">&nbsp;<img src="images/rw/write.png">
 
 <h2>Maven Repository</h2>
 
@@ -84,7 +108,7 @@ public void testPutPojo() throws IOException {
     &lt;repository&gt;
         &lt;id&gt;wrap-trap.net/maven2/snapshot&lt;/id&gt;
         &lt;name&gt;wrap-trap.net Maven Repository&lt;/name&gt;
-        &lt;url&gt;<a href="http://wrap-trap.net/maven2/snapshot&lt;/url">http://wrap-trap.net/maven2/snapshot&lt;/url</a>&gt;
+        &lt;url&gt;<a href="http://wrap-trap.net/maven2/snapshot&lt;/url">http://wrap-trap.net/maven2/snapshot</a>&lt;/url&gt;
     &lt;/repository&gt;
     ...
 &lt;repositories&gt;
