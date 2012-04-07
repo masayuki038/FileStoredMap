@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="FileStoredMap : " />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>FileStoredMap</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/masayuki038/FileStoredMap">Fork Me on GitHub</a>
+
+          <h1 id="project_title">FileStoredMap</h1>
+          <h2 id="project_tagline"></h2>
+
+          <section id="downloads">
+            <a class="zip_download_link" href="https://github.com/masayuki038/FileStoredMap/zipball/master">Download this project as a .zip file</a>
+            <a class="tar_download_link" href="https://github.com/masayuki038/FileStoredMap/tarball/master">Download this project as a tar.gz file</a>
+          </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h2>Summary</h2>
+
+<p>FileStoredMap is an implementation of java.util.Map. 
+The entries(key-value) are persisted in files instead of Java heap avoiding the Out Of Memory Error. </p>
+
+<p>This map serializes a key-value pair to BSON(<a href="http://bsonspec.org/">http://bsonspec.org/</a>) and writes to a file when called 'put'.
+And deserializes BSON to a key-value when called 'get'.</p>
+
+<p>For example, below:</p>
+
+<pre><code>@Test
+public void testPutPojo() throws IOException {
+    TestUtils.deleteFiles("tmp/empdir");
+    FileStoredMap&lt;Employee&gt; map = null;
+    try {
+        map = new FileStoredMap&lt;Employee&gt;("tmp/empdir");
+        Employee emp = TestUtils.createEmployee("hoge", 256, new Date());
+        // 'emp' is serialized to bson by FileStoredMap and written to data file.
+        map.put("emp", emp);
+        // check the equivalent between local variable object and deserialized one.
+        TestUtils.assertEmployeeEquivalent(emp, map.get("emp"));  
+    } finally {
+        if (map != null) {
+            map.close();
+        }
+    }
+}
+</code></pre>
+
+<h2>Memory Usage</h2>
+
+<p>FileStoredMap(FSM) requires a less heap than HashMap and Embeded DB(Berkeley DB, etc.) since storing data to files instead of heap. For example, comparing memory usage to Berkeley DB Java Edition(BDB).</p>
+
+<h2>Maven Repository</h2>
+
+<ul>
+<li>Jars: <a href="http://wrap-trap.net/maven2/snapshot/net/wrap-trap/collections/FileStoredMap/0.0.1-SNAPSHOT/">http://wrap-trap.net/maven2/snapshot/net/wrap-trap/collections/FileStoredMap/0.0.1-SNAPSHOT/</a></li>
+<li>Repository URL: <a href="http://wrap-trap.net/maven2/snapshot/">http://wrap-trap.net/maven2/snapshot/</a></li>
+</ul><p>pom.xml:</p>
+
+<pre><code>&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;net.wrap-trap.collections&lt;/groupId&gt;
+        &lt;artifactId&gt;FileStoredMap&lt;/artifactId&gt;
+        &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+    &lt;/dependency&gt;
+    ...
+&lt;/dependencies&gt;
+...
+&lt;repositories&gt;
+    &lt;repository&gt;
+        &lt;id&gt;wrap-trap.net/maven2/snapshot&lt;/id&gt;
+        &lt;name&gt;wrap-trap.net Maven Repository&lt;/name&gt;
+        &lt;url&gt;<a href="http://wrap-trap.net/maven2/snapshot&lt;/url">http://wrap-trap.net/maven2/snapshot&lt;/url</a>&gt;
+    &lt;/repository&gt;
+    ...
+&lt;repositories&gt;
+</code></pre>
+
+<h2>License</h2>
+
+<p>MIT: <a href="http://rem.mit-license.org">http://rem.mit-license.org</a></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">FileStoredMap maintained by <a href="https://github.com/masayuki038">masayuki038</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-654500-9");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
