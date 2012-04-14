@@ -72,21 +72,29 @@ public void testPutPojo() throws IOException {
 <h3>JVM Options</h3>
 <p>Write It Later.</p>
 
-<h3>reads/writes 15000</h3>
-<img src="images/heap/15000_Heap_BDB.png">&nbsp;<img src="images/heap/15000_Heap_FSM.png">
+<h3>Heap Graph(including warming up time of bench)</h3>
+<h4>2000 elements read/write</h4>
+<img src="images/heap/bdb_2000.png">&nbsp;<img src="images/heap/fsm_2000.png">
 
-<h3>reads/writes 30000</h3>
-<img src="images/heap/30000_Heap_BDB.png">&nbsp;<img src="images/heap/30000_Heap_FSM.png">
+<h4>4000 elements read/write</h4>
+<img src="images/heap/bdb_4000.png">&nbsp;<img src="images/heap/fsm_4000.png">
 
-<h3>reads/writes 45000</h3>
-<img src="images/heap/45000_Heap_BDB.png">&nbsp;<img src="images/heap/45000_Heap_FSM.png">
+<h4>6000 elements read/write</h4>
+<img src="images/heap/bdb_6000.png">&nbsp;<img src="images/heap/fsm_6000.png">
 
-<h3>reads/writes 60000</h3>
-<img src="images/heap/60000_Heap_BDB.png">&nbsp;<img src="images/heap/60000_Heap_FSM.png">
+<h4>8000 elements read/write</h4>
+<img src="images/heap/bdb_8000.png">&nbsp;<img src="images/heap/fsm_8000.png">
+
+<h4>10000 elements read/write</h4>
+<img src="images/heap/bdb_10000.png">&nbsp;<img src="images/heap/fsm_10000.png">
 
 <h2>Reads/Writes is Slow</h2>
-<p>FSM writes is 2-3 times slower than BDB.</p>
-<img src="images/rw/read.png">&nbsp;<img src="images/rw/write.png">
+<p>FSM writes is 2-3 times  and reads is 10 times slower than BDB.</p>
+<h3>reads/writes elapsed time</h3>
+<img src="images/rw/reads_elapsed_time.png">&nbsp;<img src="images/rw/writes_elapsed_time.png">
+
+<h3>reads/writes throughput</h3>
+<img src="images/rw/reads_per_sec.png">&nbsp;<img src="images/rw/writes_per_sec.png">
 
 <h2>Maven Repository</h2>
 
